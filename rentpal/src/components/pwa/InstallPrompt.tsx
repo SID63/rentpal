@@ -95,13 +95,20 @@ export default function InstallPrompt({ className = "" }: InstallPromptProps) {
   const handleDismiss = () => {
     setShowPrompt(false)
     // Don't show again for this session
-    sessionStorage.setItem('rentpal-install-dismissed', 'true')
+    if (typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined') {
+      sessionStorage.setItem('rentpal-install-dismissed', 'true')
+    }
   }
 
   // Don't show if already installed or dismissed this session
+  const dismissedThisSession =
+    typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined'
+      ? sessionStorage.getItem('rentpal-install-dismissed')
+      : null
+
   if (isInstalled || 
       isStandalone || 
-      sessionStorage.getItem('rentpal-install-dismissed') ||
+      dismissedThisSession ||
       (!deferredPrompt && !isIOS)) {
     return null
   }

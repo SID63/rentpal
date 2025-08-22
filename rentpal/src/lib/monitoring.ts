@@ -10,31 +10,23 @@ export const initializeMonitoring = () => {
       environment: process.env.NODE_ENV,
       tracesSampleRate: 0.1, // Capture 10% of transactions for performance monitoring
       debug: false,
-      
-      // Performance monitoring
-      integrations: [
-        new Sentry.BrowserTracing({
-          // Set sampling rate for performance monitoring
-          tracingOrigins: [
-            'localhost',
-            process.env.NEXT_PUBLIC_APP_URL || '',
-            /^\//,
-          ],
-        }),
-      ],
       replaysOnErrorSampleRate: 0.1,
       replaysSessionSampleRate: 0.0,
 
       // Filter out common non-critical errors
       beforeSend(event, hint) {
-        const error = hint.originalException
+        const original = hint.originalException as unknown
+        const message =
+          original && typeof original === 'object' && 'message' in (original as any)
+            ? String((original as any).message)
+            : undefined
 
         // Filter out network errors that are not actionable
-        if (error && error.message) {
+        if (message) {
           if (
-            error.message.includes('Network Error') ||
-            error.message.includes('Failed to fetch') ||
-            error.message.includes('Load failed')
+            message.includes('Network Error') ||
+            message.includes('Failed to fetch') ||
+            message.includes('Load failed')
           ) {
             return null
           }
@@ -135,7 +127,8 @@ export const addBreadcrumb = (message: string, category: string, data?: Record<s
  */
 export const startTransaction = (name: string, op: string) => {
   if (process.env.NODE_ENV === 'production') {
-    return Sentry.startTransaction({ name, op })
+    // startSpan is the modern API in the Sentry SDKs
+    return Sentry.startSpan({ name, op }, () => null)
   }
   return null
 }
@@ -144,11 +137,22 @@ export const measurePerformance = async <T>(
   name: string,
   operation: () => Promise<T>
 ): Promise<T> => {
-  const transaction = startTransaction(name, 'function')
+  // Use startSpan to measure performance in production
+  let spanFinished = false
+  const spanWrapper = async () => {
+    return await operation()
+  }
+  let resultPromise: Promise<T>
+  if (process.env.NODE_ENV === 'production') {
+    resultPromise = Sentry.startSpan({ name, op: 'function' }, spanWrapper)
+    spanFinished = true
+  } else {
+    resultPromise = operation()
+  }
   const startTime = performance.now()
   
   try {
-    const result = await operation()
+    const result = await resultPromise
     const endTime = performance.now()
     
     logMessage(`Performance: ${name} took ${endTime - startTime}ms`, 'info', {
@@ -161,7 +165,10 @@ export const measurePerformance = async <T>(
     logError(error as Error, { operation: name })
     throw error
   } finally {
-    transaction?.finish()
+    // startSpan above auto-finishes when the callback resolves/rejects
+    if (!spanFinished) {
+      // no-op
+    }
   }
 }
 
