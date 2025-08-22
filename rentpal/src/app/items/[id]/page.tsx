@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
 import { pageMetadata } from '@/lib/seo'
-import { itemService } from '@/lib/database'
 import ItemDetails from '@/components/items/ItemDetails'
 import { ProductSEO } from '@/components/SEO'
 
@@ -15,6 +14,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // Basic SSR metadata generation for product page
   try {
+    const { itemService } = await import('@/lib/database')
     const item = await itemService.getItemById(params.id)
     if (!item) return pageMetadata.item({
       title: 'Item', description: 'Item not found', category: 'item', dailyRate: 0, location: { city: '', state: '' }
@@ -34,6 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function Page({ params }: Props) {
+  const { itemService } = await import('@/lib/database')
   const item = await itemService.getItemById(params.id)
   if (!item) return null
   const product = {
