@@ -6,7 +6,6 @@ import PWAProvider from "@/components/pwa/PWAProvider";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import ClientInit from "@/components/ClientInit";
 import Script from "next/script";
-import { GA_TRACKING_ID } from "@/lib/analytics";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -80,7 +79,7 @@ export default function RootLayout({
         {process.env.NEXT_PUBLIC_GA_ID && (
           <>
             <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
               strategy="afterInteractive"
             />
             <Script id="ga-init" strategy="afterInteractive">
@@ -88,7 +87,7 @@ export default function RootLayout({
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
-                gtag('config', '${GA_TRACKING_ID}', {
+                gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {
                   page_path: window.location.pathname,
                 });
               `}
