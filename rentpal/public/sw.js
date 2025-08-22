@@ -7,8 +7,6 @@ const DYNAMIC_CACHE_NAME = 'rentpal-dynamic-v1'
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
   // Add other critical assets
 ]
 
