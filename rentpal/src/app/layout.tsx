@@ -7,6 +7,9 @@ import InstallPrompt from "@/components/pwa/InstallPrompt";
 import ClientInit from "@/components/ClientInit";
 import Script from "next/script";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
