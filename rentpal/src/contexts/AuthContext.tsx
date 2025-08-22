@@ -24,56 +24,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setSession(session)
+        setUser(session?.user ?? null)
+      } catch (e) {
+        console.warn('[Auth] Supabase not configured or unavailable; continuing without auth')
+      } finally {
+        setLoading(false)
+      }
     }
 
     getInitialSession()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    let subscription: { unsubscribe: () => void } | null = null
+    try {
+      const res = supabase.auth.onAuthStateChange(async (_event, session) => {
         setSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
-      }
-    )
+      })
+      subscription = res.data.subscription
+    } catch (e) {
+      // ignore when not configured
+    }
 
-    return () => subscription.unsubscribe()
+    return () => subscription?.unsubscribe()
   }, [])
 
   const signUp = async (email: string, password: string, userData?: Record<string, unknown>) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: userData
-      }
-    })
-    return { error }
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: userData
+        }
+      })
+      return { error }
+    } catch (e) {
+      return { error: { name: 'AuthError', message: 'Auth unavailable' } as unknown as AuthError }
+    }
   }
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-    return { error }
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+      return { error }
+    } catch (e) {
+      return { error: { name: 'AuthError', message: 'Auth unavailable' } as unknown as AuthError }
+    }
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
+    try {
+      const { error } = await supabase.auth.signOut()
+      return { error }
+    } catch (e) {
+      return { error: { name: 'AuthError', message: 'Auth unavailable' } as unknown as AuthError }
+    }
   }
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`
-    })
-    return { error }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      })
+      return { error }
+    } catch (e) {
+      return { error: { name: 'AuthError', message: 'Auth unavailable' } as unknown as AuthError }
+    }
   }
 
   const value = {

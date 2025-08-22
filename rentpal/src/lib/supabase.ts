@@ -2,16 +2,25 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
 let client: SupabaseClient<Database> | null = null
+let unavailableClient: SupabaseClient<Database> | null = null
 
 function ensureClient(): SupabaseClient<Database> {
   if (!client) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    // Do not eagerly throw during build-time imports; only initialize when actually used
     if (!supabaseUrl || !supabaseAnonKey) {
-      // In client/runtime, this should be set via env. During build/prerender, avoid initialization.
-      throw new Error('Supabase client requested before environment was configured')
+      // Return an unavailable proxy that throws only when a method is actually invoked
+      if (!unavailableClient) {
+        unavailableClient = new Proxy({} as SupabaseClient<Database>, {
+          get(_t, _prop) {
+            return () => {
+              throw new Error('Supabase client is not configured: please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')
+            }
+          },
+        }) as SupabaseClient<Database>
+      }
+      return unavailableClient
     }
 
     client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
