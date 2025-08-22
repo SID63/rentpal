@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ItemWithDetails } from '@/types/database'
 import { useAuth } from '@/contexts/AuthContext'
 import { itemService, bookingService, favoriteService } from '@/lib/database'
+import { isSupabaseConfigured } from '@/lib/supabase'
 import Link from 'next/link'
 
 interface RecommendationEngineProps {
@@ -47,6 +48,11 @@ export default function RecommendationEngine({
     setError(null)
 
     try {
+      // If Supabase isn't configured (e.g., missing NEXT_PUBLIC envs), skip
+      if (!isSupabaseConfigured()) {
+        setRecommendations([])
+        return
+      }
       // Get user's interaction data
       const [userBookings, userFavorites, allItems] = await Promise.all([
         bookingService.getUserBookings(targetUserId, 'renter'),
@@ -54,8 +60,13 @@ export default function RecommendationEngine({
         itemService.getItems({ limit: 100 })
       ])
 
+      // Defensive coercion to arrays
+      const bookingsArr = Array.isArray(userBookings) ? userBookings : []
+      const favoritesArr = Array.isArray(userFavorites) ? userFavorites : []
+      const itemsArr = Array.isArray(allItems) ? allItems : []
+
       // Filter out current item and user's own items
-      const candidateItems = allItems.filter(item => 
+      const candidateItems = itemsArr.filter(item => 
         item.id !== currentItem?.id && 
         item.owner_id !== targetUserId &&
         item.status === 'active'
@@ -64,8 +75,8 @@ export default function RecommendationEngine({
       // Calculate recommendation scores
       const scoredItems = candidateItems.map(item => 
         calculateRecommendationScore(item, {
-          userBookings,
-          userFavorites,
+          userBookings: bookingsArr,
+          userFavorites: favoritesArr,
           currentItem
         })
       ).filter(scored => scored.score > 0)
@@ -89,10 +100,19 @@ export default function RecommendationEngine({
     setError(null)
 
     try {
-      // For guests, show popular and highly-rated items
+      // For guests, if Supabase isn't configured, avoid calling database
+      if (!isSupabaseConfigured()) {
+        // Optionally, fetch from our minimal API route; for now, just show none
+        // const res = await fetch('/api/items/popular')
+        // const data = await res.json()
+        setRecommendations([])
+        return
+      }
+      // Otherwise, show popular and highly-rated items
       const allItems = await itemService.getItems({ limit: 50 })
+      const itemsArr = Array.isArray(allItems) ? allItems : []
       
-      const candidateItems = allItems.filter(item => 
+      const candidateItems = itemsArr.filter(item => 
         item.id !== currentItem?.id && 
         item.status === 'active'
       )

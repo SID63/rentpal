@@ -33,9 +33,9 @@ export const profileService = {
             .from('profiles')
             .select('*')
             .eq('id', userId)
-            .single()
+            .maybeSingle()
           if (error) throw error
-          return data
+          return data || null
         },
         { ttl: 10 * 60 * 1000, useMemory: true, useStorage: true }
       )
@@ -295,9 +295,11 @@ export const itemService = {
         item !== null && item.distance <= radiusMiles
       )
       .sort((a, b) => a.distance - b.distance)
+    // Return nearest items limited to the requested count (strip distance field)
+    const result = itemsWithDistance
       .slice(0, limit)
-
-    return itemsWithDistance
+      .map(({ distance, ...rest }) => rest as ItemWithDetails)
+    return result
   },
 
   async getItemById(id: string, userId?: string): Promise<ItemWithDetails | null> {
@@ -305,14 +307,14 @@ export const itemService = {
       const { data, error } = await supabase
         .from('items')
         .select(`
-        *,
-        owner:profiles(*),
-        category:categories(*),
-        images:item_images(*),
-        reviews:reviews(
           *,
-          reviewer:profiles(*)
-        )
+          owner:profiles(*),
+          category:categories(*),
+          images:item_images(*),
+          reviews:reviews(
+            *,
+            reviewer:profiles(*)
+          )
         `)
         .eq('id', id)
         .single()
@@ -321,6 +323,7 @@ export const itemService = {
     }
 
     let itemWithDetails: ItemWithDetails | null = null
+
     try {
       itemWithDetails = await withCache(cacheKeys.item(id), fetcher, { ttl: 10 * 60 * 1000, useMemory: true })
     } catch (error) {
@@ -340,11 +343,13 @@ export const itemService = {
       itemWithDetails.is_favorited = !!favorite
     }
 
-    // Increment view count
-    await supabase
-      .from('items')
-      .update({ views_count: data.views_count + 1 })
-      .eq('id', id)
+    // Increment view count (guarding against undefined)
+    if (itemWithDetails && typeof itemWithDetails.views_count === 'number') {
+      await supabase
+        .from('items')
+        .update({ views_count: itemWithDetails.views_count + 1 })
+        .eq('id', id)
+    }
 
     return itemWithDetails
   },
@@ -364,200 +369,38 @@ export const itemService = {
     return data
   },
 
-  async updateItem(id: string, updates: ItemUpdate): Promise<Item | null> {
-    const { data, error } = await supabase
-      .from('items')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error updating item:', error)
-      return null
-    }
-
-    // Invalidate item-related caches
-    invalidateCache.item(id, data?.owner_id)
-    return data
-  },
-
-  async deleteItem(id: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('items')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      console.error('Error deleting item:', error)
-      return false
-    }
-
-    invalidateCache.item(id)
-    return true
-  },
-
   async getUserItems(userId: string): Promise<ItemWithDetails[]> {
-    const { data, error } = await supabase
-      .from('items')
-      .select(`
-        *,
-        owner:profiles(*),
-        category:categories(*),
-        images:item_images(*),
-        reviews:reviews(*)
-      `)
-      .eq('owner_id', userId)
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await supabase
+        .from('items')
+        .select(`
+          *,
+          owner:profiles(*),
+          category:categories(*),
+          images:item_images(*),
+          reviews:reviews(*)
+        `)
+        .eq('owner_id', userId)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching user items:', error)
+      if (error) {
+        console.error('Error fetching user items:', error)
+        return []
+      }
+
+      return Array.isArray(data) ? (data as ItemWithDetails[]) : []
+    } catch (e) {
+      console.error('Error in getUserItems:', e)
       return []
     }
-
-    return data as ItemWithDetails[] || []
-  }
+  },
 }
 
 // Booking operations
 export const bookingService = {
-  async createBooking(booking: BookingInsert): Promise<Booking | null> {
-    // First check for overlapping bookings
-    const hasOverlap = await this.checkBookingOverlap(
-      booking.item_id,
-      booking.start_date,
-      booking.end_date
-    )
-
-    if (hasOverlap) {
-      console.error('Booking dates overlap with existing booking')
-      return null
-    }
-
-    const { data, error } = await supabase
-      .from('bookings')
-      .insert(booking)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error creating booking:', error)
-      return null
-    }
-
-    return data
-  },
-
-  async checkBookingOverlap(
-    itemId: string, 
-    startDate: string, 
-    endDate: string, 
-    excludeBookingId?: string
-  ): Promise<boolean> {
-    let query = supabase
-      .from('bookings')
-      .select('id')
-      .eq('item_id', itemId)
-      .in('status', ['confirmed', 'active'])
-      .or(`start_date.lte.${endDate},end_date.gte.${startDate}`)
-
-    if (excludeBookingId) {
-      query = query.neq('id', excludeBookingId)
-    }
-
-    const { data, error } = await query
-
-    if (error) {
-      console.error('Error checking booking overlap:', error)
-      return true // Assume overlap to be safe
-    }
-
-    return (data && data.length > 0) || false
-  },
-
-  async getAvailableDates(itemId: string, startDate: string, endDate: string): Promise<string[]> {
-    const { data: bookings, error: bookingsError } = await supabase
-      .from('bookings')
-      .select('start_date, end_date')
-      .eq('item_id', itemId)
-      .in('status', ['confirmed', 'active'])
-      .gte('start_date', startDate)
-      .lte('end_date', endDate)
-
-    const { data: availability, error: availabilityError } = await supabase
-      .from('item_availability')
-      .select('date, is_available')
-      .eq('item_id', itemId)
-      .gte('date', startDate)
-      .lte('date', endDate)
-
-    if (bookingsError || availabilityError) {
-      console.error('Error fetching availability data')
-      return []
-    }
-
-    const unavailableDates = new Set<string>()
-
-    // Add booked dates
-    bookings?.forEach(booking => {
-      const start = new Date(booking.start_date)
-      const end = new Date(booking.end_date)
-      
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        unavailableDates.add(d.toISOString().split('T')[0])
-      }
-    })
-
-    // Add blocked dates
-    availability?.forEach(avail => {
-      if (!avail.is_available) {
-        unavailableDates.add(avail.date)
-      }
-    })
-
-    // Generate available dates
-    const availableDates: string[] = []
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateString = d.toISOString().split('T')[0]
-      if (!unavailableDates.has(dateString)) {
-        availableDates.push(dateString)
-      }
-    }
-
-    return availableDates
-  },
-
-  async getBooking(id: string): Promise<BookingWithDetails | null> {
-    const { data, error } = await supabase
-      .from('bookings')
-      .select(`
-        *,
-        item:items(
-          *,
-          owner:profiles(*),
-          category:categories(*),
-          images:item_images(*)
-        ),
-        renter:profiles(*),
-        owner:profiles(*)
-      `)
-      .eq('id', id)
-      .single()
-
-    if (error) {
-      console.error('Error fetching booking:', error)
-      return null
-    }
-
-    return data as BookingWithDetails
-  },
-
   async getUserBookings(userId: string, type: 'renter' | 'owner' = 'renter'): Promise<BookingWithDetails[]> {
     const column = type === 'renter' ? 'renter_id' : 'owner_id'
-    
+
     const { data, error } = await supabase
       .from('bookings')
       .select(`
@@ -579,7 +422,53 @@ export const bookingService = {
       return []
     }
 
-    return data as BookingWithDetails[] || []
+    return Array.isArray(data) ? (data as BookingWithDetails[]) : []
+  },
+
+  async getBooking(id: string): Promise<BookingWithDetails | null> {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        item:items(*),
+        renter:profiles(*),
+        owner:profiles(*)
+      `)
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      console.error('Error fetching booking:', error)
+      return null
+    }
+
+    return data as BookingWithDetails
+  },
+
+  async checkBookingOverlap(
+    itemId: string,
+    startDate: string,
+    endDate: string,
+    excludeBookingId?: string
+  ): Promise<boolean> {
+    let query = supabase
+      .from('bookings')
+      .select('id')
+      .eq('item_id', itemId)
+      .in('status', ['confirmed', 'active'])
+      .or(`start_date.lte.${endDate},end_date.gte.${startDate}`)
+
+    if (excludeBookingId) {
+      query = query.neq('id', excludeBookingId)
+    }
+
+    const { data, error } = await query
+    if (error) {
+      console.error('Error checking booking overlap:', error)
+      return true
+    }
+
+    return (data || []).length > 0
   },
 
   async updateBooking(id: string, updates: BookingUpdate): Promise<Booking | null> {

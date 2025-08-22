@@ -39,7 +39,11 @@ export default function BookingManagement({ className = "" }: BookingManagementP
 
     try {
       const data = await bookingService.getUserBookings(user.id, activeTab)
-      setBookings(data)
+      const safe = Array.isArray(data) ? data : []
+      if (!Array.isArray(data)) {
+        console.error('getUserBookings returned non-array in BookingManagement:', data)
+      }
+      setBookings(safe)
     } catch {
       setError('Failed to fetch bookings')
     } finally {
@@ -48,10 +52,11 @@ export default function BookingManagement({ className = "" }: BookingManagementP
   }
 
   const filterBookings = () => {
-    let filtered = bookings
+    const base = Array.isArray(bookings) ? bookings.slice() : []
+    let filtered = base
     
     if (statusFilter !== 'all') {
-      filtered = bookings.filter(booking => booking.status === statusFilter)
+      filtered = base.filter(booking => booking.status === statusFilter)
     }
 
     // Sort by created date, most recent first
@@ -70,13 +75,14 @@ export default function BookingManagement({ className = "" }: BookingManagementP
   }
 
   const getStatusCounts = () => {
+    const base = Array.isArray(bookings) ? bookings : []
     const counts = {
-      all: bookings.length,
-      pending: bookings.filter(b => b.status === 'pending').length,
-      confirmed: bookings.filter(b => b.status === 'confirmed').length,
-      active: bookings.filter(b => b.status === 'active').length,
-      completed: bookings.filter(b => b.status === 'completed').length,
-      cancelled: bookings.filter(b => b.status === 'cancelled').length
+      all: base.length,
+      pending: base.filter(b => b.status === 'pending').length,
+      confirmed: base.filter(b => b.status === 'confirmed').length,
+      active: base.filter(b => b.status === 'active').length,
+      completed: base.filter(b => b.status === 'completed').length,
+      cancelled: base.filter(b => b.status === 'cancelled').length
     }
     return counts
   }
@@ -116,7 +122,8 @@ export default function BookingManagement({ className = "" }: BookingManagementP
 
   const getActionRequiredCount = () => {
     if (activeTab === 'owner') {
-      return bookings.filter(b => 
+      const base = Array.isArray(bookings) ? bookings : []
+      return base.filter(b => 
         b.status === 'pending' || 
         b.status === 'confirmed' || 
         b.status === 'active'

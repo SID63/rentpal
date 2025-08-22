@@ -78,7 +78,11 @@ export function useCategories() {
       try {
         setLoading(true)
         const data = await categoryService.getCategories()
-        setCategories(data)
+        const safe = Array.isArray(data) ? data : []
+        if (!Array.isArray(data)) {
+          console.error('getCategories returned non-array:', data)
+        }
+        setCategories(safe)
       } catch {
         setError('Failed to fetch categories')
       } finally {
@@ -114,14 +118,17 @@ export function useItems(filters?: {
         offset,
         limit: filters?.limit || 10
       })
-
+      const safe = Array.isArray(data) ? data : []
+      if (!Array.isArray(data)) {
+        console.error('getItems returned non-array:', data)
+      }
       if (reset) {
-        setItems(data)
+        setItems(safe)
       } else {
-        setItems(prev => [...prev, ...data])
+        setItems(prev => [...prev, ...safe])
       }
 
-      setHasMore(data.length === (filters?.limit || 10))
+      setHasMore(safe.length === (filters?.limit || 10))
     } catch {
       setError('Failed to fetch items')
     } finally {
@@ -140,8 +147,16 @@ export function useItems(filters?: {
   }, [fetchItems, items.length, loading, hasMore])
 
   const refresh = useCallback(() => {
-    fetchItems(0, true)
-  }, [fetchItems])
+    if (filters) {
+      itemService.getItems(filters).then((data: unknown) => {
+        const safe = Array.isArray(data) ? (data as ItemWithDetails[]) : []
+        if (!Array.isArray(data)) {
+          console.error('getItems (refresh) returned non-array:', data)
+        }
+        setItems(safe)
+      })
+    }
+  }, [filters])
 
   return { items, loading, error, hasMore, loadMore, refresh }
 }
@@ -191,7 +206,11 @@ export function useUserItems(userId?: string) {
       try {
         setLoading(true)
         const data = await itemService.getUserItems(userId)
-        setItems(data)
+        const safe = Array.isArray(data) ? data : []
+        if (!Array.isArray(data)) {
+          console.error('getUserItems returned non-array:', data)
+        }
+        setItems(safe)
       } catch (err) {
         setError('Failed to fetch user items')
       } finally {
@@ -204,7 +223,13 @@ export function useUserItems(userId?: string) {
 
   const refresh = useCallback(() => {
     if (userId) {
-      itemService.getUserItems(userId).then(setItems)
+      itemService.getUserItems(userId).then((data: unknown) => {
+        const safe = Array.isArray(data) ? (data as ItemWithDetails[]) : []
+        if (!Array.isArray(data)) {
+          console.error('getUserItems (refresh) returned non-array:', data)
+        }
+        setItems(safe)
+      })
     }
   }, [userId])
 
@@ -228,7 +253,11 @@ export function useBookings(type: 'renter' | 'owner' = 'renter') {
       try {
         setLoading(true)
         const data = await bookingService.getUserBookings(user.id, type)
-        setBookings(data)
+        const safe = Array.isArray(data) ? data : []
+        if (!Array.isArray(data)) {
+          console.error('getUserBookings returned non-array:', data)
+        }
+        setBookings(safe)
       } catch (err) {
         setError('Failed to fetch bookings')
       } finally {
@@ -241,7 +270,13 @@ export function useBookings(type: 'renter' | 'owner' = 'renter') {
 
   const refresh = useCallback(() => {
     if (user) {
-      bookingService.getUserBookings(user.id, type).then(setBookings)
+      bookingService.getUserBookings(user.id, type).then((data: unknown) => {
+        const safe = Array.isArray(data) ? (data as BookingWithDetails[]) : []
+        if (!Array.isArray(data)) {
+          console.error('getUserBookings (refresh) returned non-array:', data)
+        }
+        setBookings(safe)
+      })
     }
   }, [user, type])
 
@@ -293,7 +328,11 @@ export function useItemReviews(itemId: string) {
       try {
         setLoading(true)
         const data = await reviewService.getItemReviews(itemId)
-        setReviews(data)
+        const safe = Array.isArray(data) ? data : []
+        if (!Array.isArray(data)) {
+          console.error('getItemReviews returned non-array:', data)
+        }
+        setReviews(safe)
       } catch (err) {
         setError('Failed to fetch reviews')
       } finally {
@@ -322,7 +361,11 @@ export function useUserReviews(userId: string) {
       try {
         setLoading(true)
         const data = await reviewService.getUserReviews(userId)
-        setReviews(data)
+        const safe = Array.isArray(data) ? data : []
+        if (!Array.isArray(data)) {
+          console.error('getUserReviews returned non-array:', data)
+        }
+        setReviews(safe)
       } catch (err) {
         setError('Failed to fetch user reviews')
       } finally {
@@ -353,7 +396,11 @@ export function useConversations() {
       try {
         setLoading(true)
         const data = await messageService.getConversations(user.id)
-        setConversations(data)
+        const safe = Array.isArray(data) ? data : []
+        if (!Array.isArray(data)) {
+          console.error('getConversations returned non-array:', data)
+        }
+        setConversations(safe)
       } catch (err) {
         setError('Failed to fetch conversations')
       } finally {
@@ -382,7 +429,11 @@ export function useMessages(conversationId: string) {
       try {
         setLoading(true)
         const data = await messageService.getMessages(conversationId)
-        setMessages(data)
+        const safe = Array.isArray(data) ? data : []
+        if (!Array.isArray(data)) {
+          console.error('getMessages returned non-array:', data)
+        }
+        setMessages(safe)
       } catch (err) {
         setError('Failed to fetch messages')
       } finally {
@@ -435,7 +486,11 @@ export function useFavorites() {
       try {
         setLoading(true)
         const data = await favoriteService.getUserFavorites(user.id)
-        setFavorites(data)
+        const safe = Array.isArray(data) ? data : []
+        if (!Array.isArray(data)) {
+          console.error('getUserFavorites returned non-array:', data)
+        }
+        setFavorites(safe)
       } catch (err) {
         setError('Failed to fetch favorites')
       } finally {
@@ -454,7 +509,11 @@ export function useFavorites() {
       if (success) {
         // Refresh favorites list
         const data = await favoriteService.getUserFavorites(user.id)
-        setFavorites(data)
+        const safe = Array.isArray(data) ? data : []
+        if (!Array.isArray(data)) {
+          console.error('getUserFavorites (addFavorite) returned non-array:', data)
+        }
+        setFavorites(safe)
       }
       return success
     } catch (err) {
@@ -499,8 +558,12 @@ export function useNotifications() {
       try {
         setLoading(true)
         const data = await notificationService.getUserNotifications(user.id)
-        setNotifications(data)
-        setUnreadCount(data.filter(n => !n.is_read).length)
+        const safe = Array.isArray(data) ? data : []
+        if (!Array.isArray(data)) {
+          console.error('getUserNotifications returned non-array:', data)
+        }
+        setNotifications(safe)
+        setUnreadCount(safe.filter(n => !n.is_read).length)
       } catch (err) {
         setError('Failed to fetch notifications')
       } finally {
