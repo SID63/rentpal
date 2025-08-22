@@ -4,6 +4,10 @@ import { itemService } from '@/lib/database'
 import ItemDetails from '@/components/items/ItemDetails'
 import { ProductSEO } from '@/components/SEO'
 
+// Prevent Next from trying to prerender/collect data at build time
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 interface Props {
   params: { id: string }
 }
