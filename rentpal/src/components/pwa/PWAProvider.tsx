@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePWAInstall } from './InstallPrompt'
+import type { BeforeInstallPromptEvent } from '../../types/events'
 
 interface PWAProviderProps {
   children: React.ReactNode
@@ -13,14 +14,28 @@ export default function PWAProvider({ children }: PWAProviderProps) {
   const { isInstalled } = usePWAInstall()
 
   useEffect(() => {
-    // Register service worker
-    if ('serviceWorker' in navigator) {
-      registerServiceWorker()
+    const isLocalhost = typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname)
+    const enableSw = process.env.NEXT_PUBLIC_ENABLE_SW === 'true'
+    const nodeEnv = process.env.NODE_ENV
+
+    // Diagnostics
+    if (typeof window !== 'undefined') {
+      console.log('[PWAProvider] SW gating', { nodeEnv, enableSw, hostname: window.location.hostname })
     }
 
-    // Handle app updates
-    if (isInstalled) {
-      checkForUpdates()
+    // Never keep SW on localhost; always unregister
+    if (isLocalhost && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister())).catch(() => {})
+    }
+
+    // Only register when explicitly enabled via env flag AND not on localhost
+    if (enableSw && !isLocalhost) {
+      if ('serviceWorker' in navigator) {
+        registerServiceWorker()
+      }
+      if (isInstalled) {
+        checkForUpdates()
+      }
     }
   }, [isInstalled])
 
@@ -140,7 +155,7 @@ export default function PWAProvider({ children }: PWAProviderProps) {
 // Hook for PWA features
 export function usePWAFeatures() {
   const [isOnline, setIsOnline] = useState(true)
-  const [installPromptEvent, setInstallPromptEvent] = useState<any>(null)
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
     // Online/offline status
@@ -151,9 +166,9 @@ export function usePWAFeatures() {
     window.addEventListener('offline', handleOffline)
 
     // Install prompt
-    const handleBeforeInstallPrompt = (e: any) => {
+    const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
-      setInstallPromptEvent(e)
+      setInstallPromptEvent(e as BeforeInstallPromptEvent)
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)

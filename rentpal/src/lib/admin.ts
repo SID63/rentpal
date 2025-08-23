@@ -96,7 +96,7 @@ export interface PlatformAnalytics {
   date: string
   metric_name: string
   metric_value: number
-  metadata: Record<string, any>
+  metadata: Record<string, string | number | boolean | null>
   created_at: string
 }
 
@@ -138,7 +138,7 @@ export interface FlaggedContent {
     full_name: string
     email: string
   }
-  content?: any // The actual content being flagged
+  content?: Record<string, string | number | boolean | null> // The actual content being flagged
 }
 
 // Admin user management
@@ -617,7 +617,7 @@ export const analyticsService = {
   },
 
   // Record platform metric
-  async recordMetric(date: string, metricName: string, value: number, metadata?: Record<string, any>): Promise<boolean> {
+  async recordMetric(date: string, metricName: string, value: number, metadata?: Record<string, string | number | boolean | null>): Promise<boolean> {
     const { error } = await supabase
       .from('platform_analytics')
       .upsert({

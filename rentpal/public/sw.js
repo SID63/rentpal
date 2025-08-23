@@ -3,6 +3,27 @@ const CACHE_NAME = 'rentpal-v1'
 const STATIC_CACHE_NAME = 'rentpal-static-v1'
 const DYNAMIC_CACHE_NAME = 'rentpal-dynamic-v1'
 
+// Development guard: auto-unregister on localhost to prevent stale chunk caching
+const isLocalhost = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(self.location.hostname)
+if (isLocalhost) {
+  // Ensure we don't take control in dev
+  self.addEventListener('install', (event) => {
+    event.waitUntil(self.skipWaiting())
+  })
+  self.addEventListener('activate', (event) => {
+    event.waitUntil((async () => {
+      try {
+        await self.registration.unregister()
+        const clientList = await self.clients.matchAll({ type: 'window' })
+        // Soft reload open clients so they detach from SW
+        clientList.forEach((client) => client.navigate(client.url))
+      } catch (e) {
+        // no-op
+      }
+    })())
+  })
+}
+
 // Assets to cache on install
 const STATIC_ASSETS = [
   '/',
@@ -66,6 +87,10 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache or network
 self.addEventListener('fetch', (event) => {
+  // Do not intercept any requests on localhost
+  if (isLocalhost) {
+    return
+  }
   const { request } = event
   const url = new URL(request.url)
 

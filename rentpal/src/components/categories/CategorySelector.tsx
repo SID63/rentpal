@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useCategories } from '@/hooks/useDatabase'
+import { useSimpleCategories } from '@/hooks/useSimpleCategories'
 import { Category } from '@/types/database'
 
 interface CategorySelectorProps {
@@ -19,7 +19,7 @@ export default function CategorySelector({
   className = "",
   showSubcategories = true
 }: CategorySelectorProps) {
-  const { categories, loading, error } = useCategories()
+  const { categories, loading, error } = useSimpleCategories()
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [subcategories, setSubcategories] = useState<Category[]>([])
 

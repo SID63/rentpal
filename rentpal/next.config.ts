@@ -8,17 +8,82 @@ const nextConfig: NextConfig = {
   
   // Image optimization
   images: {
-    domains: ['localhost'],
     remotePatterns: [
+      // Public bucket objects
       {
         protocol: 'https',
         hostname: '*.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'iqqkfqzhfzcovbaykedb.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+      // Signed URLs
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/sign/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'iqqkfqzhfzcovbaykedb.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/sign/**',
+      },
+      // Rendered/transformed images
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        port: '',
+        pathname: '/storage/v1/render/image/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'iqqkfqzhfzcovbaykedb.supabase.co',
+        port: '',
+        pathname: '/storage/v1/render/image/**',
+      },
+      // UI Avatars service
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+        port: '',
+        pathname: '/api/**',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
+    // Allow SVGs for local fallbacks like /vercel.svg
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+  },
+
+  // Avoid bundling server-only instrumentation in the client and set fallbacks
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve = config.resolve || {}
+      config.resolve.alias = {
+        ...(config.resolve.alias || {}),
+        '@prisma/instrumentation': false,
+        '@opentelemetry/api': false,
+        '@opentelemetry/instrumentation': false,
+        '@opentelemetry/core': false,
+      }
+
+      // Client-side polyfill fallbacks
+      config.resolve.fallback = {
+        ...(config.resolve.fallback || {}),
+        fs: false,
+        net: false,
+        tls: false,
+      }
+    }
+    return config
   },
 
   // PWA & Security headers
@@ -39,18 +104,6 @@ const nextConfig: NextConfig = {
   },
 
   // Optimize bundle
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      // Client-side optimizations
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      }
-    }
-    return config
-  },
 
   // Performance optimizations
   compress: true,

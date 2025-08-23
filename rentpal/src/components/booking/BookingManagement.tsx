@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { BookingWithDetails, BookingStatus } from '@/types/database'
 import { useAuth } from '@/contexts/AuthContext'
 import { bookingService } from '@/lib/database'
 import BookingDetails from './BookingDetails'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface BookingManagementProps {
   className?: string
@@ -21,17 +22,7 @@ export default function BookingManagement({ className = "" }: BookingManagementP
   const [error, setError] = useState<string | null>(null)
   const { user } = useAuth()
 
-  useEffect(() => {
-    if (user) {
-      fetchBookings()
-    }
-  }, [user, activeTab])
-
-  useEffect(() => {
-    filterBookings()
-  }, [bookings, statusFilter])
-
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     if (!user) return
 
     setLoading(true)
@@ -49,9 +40,9 @@ export default function BookingManagement({ className = "" }: BookingManagementP
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, activeTab])
 
-  const filterBookings = () => {
+  const filterBookings = useCallback(() => {
     const base = Array.isArray(bookings) ? bookings.slice() : []
     let filtered = base
     
@@ -63,7 +54,17 @@ export default function BookingManagement({ className = "" }: BookingManagementP
     filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
     setFilteredBookings(filtered)
-  }
+  }, [bookings, statusFilter])
+
+  useEffect(() => {
+    if (user) {
+      fetchBookings()
+    }
+  }, [user, activeTab, fetchBookings])
+
+  useEffect(() => {
+    filterBookings()
+  }, [bookings, statusFilter, filterBookings])
 
   const handleBookingUpdate = (updatedBooking: BookingWithDetails) => {
     setBookings(prev => 
@@ -277,9 +278,11 @@ export default function BookingManagement({ className = "" }: BookingManagementP
                   {/* Item Image */}
                   <div className="flex-shrink-0">
                     {booking.item.images && booking.item.images.length > 0 ? (
-                      <img
+                      <Image
                         src={booking.item.images[0].image_url}
                         alt={booking.item.title}
+                        width={64}
+                        height={64}
                         className="w-16 h-16 rounded-lg object-cover"
                       />
                     ) : (

@@ -68,7 +68,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 Something went wrong
               </h3>
               <p className="mt-2 text-sm text-gray-500">
-                We're sorry, but something unexpected happened. Please try refreshing the page.
+                We&apos;re sorry, but something unexpected happened. Please try refreshing the page.
               </p>
               
               {process.env.NODE_ENV === 'development' && this.state.error && (
@@ -110,7 +110,7 @@ export class ErrorBoundary extends Component<Props, State> {
  * Hook for handling async errors in functional components
  */
 export const useErrorHandler = () => {
-  return (error: Error, context?: Record<string, any>) => {
+  return (error: Error, context?: Record<string, unknown>) => {
     logError(error, context)
     
     // You could also trigger a toast notification here

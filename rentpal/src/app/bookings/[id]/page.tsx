@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { bookingService } from '@/lib/database'
 import { BookingWithDetails } from '@/types/database'
@@ -18,13 +18,7 @@ export default function BookingDetailPage() {
 
   const bookingId = params.id as string
 
-  useEffect(() => {
-    if (bookingId && user) {
-      fetchBooking()
-    }
-  }, [bookingId, user])
-
-  const fetchBooking = async () => {
+  const fetchBooking = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -48,7 +42,13 @@ export default function BookingDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [bookingId, user])
+
+  useEffect(() => {
+    if (bookingId && user) {
+      fetchBooking()
+    }
+  }, [bookingId, user, fetchBooking])
 
   const handleBookingUpdate = (updatedBooking: BookingWithDetails) => {
     setBooking(updatedBooking)
@@ -142,7 +142,6 @@ export default function BookingDetailPage() {
     return null
   }
 
-  const isOwner = user?.id === booking.owner_id
   const isRenter = user?.id === booking.renter_id
 
   return (

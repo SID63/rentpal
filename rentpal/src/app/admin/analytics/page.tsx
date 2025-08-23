@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { adminService, analyticsService, AdminUser, PlatformAnalytics } from '@/lib/admin'
 import AdminLayout from '@/components/admin/AdminLayout'
 
@@ -15,15 +15,9 @@ export default function AdminAnalyticsPage() {
 
   useEffect(() => {
     loadCurrentAdmin()
-  }, [])
+  }, [loadCurrentAdmin])
 
-  useEffect(() => {
-    if (currentAdmin) {
-      loadAnalytics()
-    }
-  }, [currentAdmin, dateRange])
-
-  const loadCurrentAdmin = async () => {
+  const loadCurrentAdmin = useCallback(async () => {
     try {
       const admin = await adminService.getCurrentAdmin()
       setCurrentAdmin(admin)
@@ -32,9 +26,9 @@ export default function AdminAnalyticsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     try {
       const data = await analyticsService.getPlatformAnalytics({
         start_date: dateRange.start,
@@ -44,7 +38,17 @@ export default function AdminAnalyticsPage() {
     } catch (error) {
       console.error('Failed to load analytics:', error)
     }
-  }
+  }, [dateRange.start, dateRange.end])
+
+  useEffect(() => {
+    loadCurrentAdmin()
+  }, [loadCurrentAdmin])
+
+  useEffect(() => {
+    if (currentAdmin) {
+      loadAnalytics()
+    }
+  }, [currentAdmin, loadAnalytics])
 
   const groupAnalyticsByMetric = (analytics: PlatformAnalytics[]) => {
     return analytics.reduce((acc, item) => {
@@ -82,7 +86,7 @@ export default function AdminAnalyticsPage() {
       <AdminLayout>
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600">You don't have permission to access this page.</p>
+          <p className="text-gray-600">You don&apos;t have permission to access this page.</p>
         </div>
       </AdminLayout>
     )

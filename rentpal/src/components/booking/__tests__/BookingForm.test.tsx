@@ -18,7 +18,7 @@ vi.mock('@/lib/supabase', () => ({
 
 // Mock date picker
 vi.mock('react-datepicker', () => ({
-  default: ({ onChange, selected, ...props }: any) => (
+  default: ({ onChange, selected, ...props }: { onChange: (date: Date) => void; selected?: Date; [key: string]: unknown }) => (
     <input
       type="date"
       value={selected ? selected.toISOString().split('T')[0] : ''}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ReviewWithDetails } from '@/types/database'
 import { useAuth } from '@/contexts/AuthContext'
 import { reviewService } from '@/lib/database'
@@ -30,9 +30,9 @@ export default function UserReviews({
     if (targetUserId) {
       fetchReviews()
     }
-  }, [targetUserId, type])
+  }, [fetchReviews])
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     if (!targetUserId) return
 
     try {
@@ -53,7 +53,7 @@ export default function UserReviews({
     } finally {
       setLoading(false)
     }
-  }
+  }, [targetUserId, type])
 
   // Mock function - in real app this would be a proper service method
   const fetchGivenReviews = async (userId: string): Promise<ReviewWithDetails[]> => {

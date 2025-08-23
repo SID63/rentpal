@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { BookingWithDetails } from '@/types/database'
 import { useBookings } from '@/hooks/useDatabase'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface BookingsListProps {
   type: 'renter' | 'owner'
@@ -164,9 +165,11 @@ export default function BookingsList({
                 {/* Item Image */}
                 <div className="flex-shrink-0">
                   {booking.item.images && booking.item.images.length > 0 ? (
-                    <img
+                    <Image
                       src={booking.item.images[0].image_url}
                       alt={booking.item.title}
+                      width={64}
+                      height={64}
                       className="w-16 h-16 rounded-lg object-cover"
                     />
                   ) : (

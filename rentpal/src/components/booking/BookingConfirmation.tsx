@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { BookingWithDetails } from '@/types/database'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface BookingConfirmationProps {
   booking: BookingWithDetails
@@ -70,9 +71,11 @@ export default function BookingConfirmation({
           
           <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
             {booking.item.images && booking.item.images.length > 0 && (
-              <img
+              <Image
                 src={booking.item.images[0].image_url}
                 alt={booking.item.title}
+                width={64}
+                height={64}
                 className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
               />
             )}
@@ -212,7 +215,7 @@ export default function BookingConfirmation({
               <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">
                 2
               </div>
-              <p>If approved, you'll receive a confirmation email with pickup/delivery details.</p>
+              <p>If approved, you&apos;ll receive a confirmation email with pickup/delivery details.</p>
             </div>
             <div className="flex items-start space-x-3">
               <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">

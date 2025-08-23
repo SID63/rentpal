@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import Image from 'next/image'
 
 interface ImageUploadProps {
   currentImageUrl?: string | null
@@ -100,9 +101,11 @@ export default function ImageUpload({
       <div className="relative">
         {currentImageUrl ? (
           <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
-            <img
+            <Image
               src={currentImageUrl}
               alt="Profile"
+              width={80}
+              height={80}
               className="w-full h-full object-cover"
             />
           </div>

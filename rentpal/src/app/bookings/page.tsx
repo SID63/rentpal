@@ -38,7 +38,7 @@ function BookingsPageContent() {
               >
                 My Rentals
                 <span className="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                  Items I'm renting
+                  Items I&apos;m renting
                 </span>
               </button>
               <button
@@ -64,7 +64,7 @@ function BookingsPageContent() {
             <div>
               <div className="mb-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                  Items You're Renting
+                  Items You&apos;re Renting
                 </h2>
                 <p className="text-gray-600">
                   Track your rental bookings and manage pickup/return details

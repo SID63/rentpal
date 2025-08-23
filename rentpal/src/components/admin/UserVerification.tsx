@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { verificationService, VerificationRequest, AdminUser } from '@/lib/admin'
 
 interface UserVerificationProps {
@@ -8,7 +8,7 @@ interface UserVerificationProps {
   className?: string
 }
 
-export default function UserVerification({ currentAdmin, className = "" }: UserVerificationProps) {
+export default function UserVerification({ className = "" }: Omit<UserVerificationProps, 'currentAdmin'>) {
   const [requests, setRequests] = useState<VerificationRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -21,14 +21,10 @@ export default function UserVerification({ currentAdmin, className = "" }: UserV
   const [totalRequests, setTotalRequests] = useState(0)
   const itemsPerPage = 10
 
-  useEffect(() => {
-    fetchVerificationRequests()
-  }, [filters, currentPage])
-
-  const fetchVerificationRequests = async () => {
+  const fetchVerificationRequests = useCallback(async () => {
     try {
       setLoading(true)
-      const filterParams: any = {
+      const filterParams: Record<string, unknown> = {
         limit: itemsPerPage,
         offset: (currentPage - 1) * itemsPerPage
       }
@@ -46,7 +42,11 @@ export default function UserVerification({ currentAdmin, className = "" }: UserV
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters.status, currentPage])
+
+  useEffect(() => {
+    fetchVerificationRequests()
+  }, [fetchVerificationRequests])
 
   const handleReviewRequest = async (requestId: string, status: 'verified' | 'rejected') => {
     try {
@@ -122,7 +122,7 @@ export default function UserVerification({ currentAdmin, className = "" }: UserV
             <select
               value={filters.status}
               onChange={(e) => {
-                setFilters(prev => ({ ...prev, status: e.target.value as any }))
+                setFilters(prev => ({ ...prev, status: e.target.value as VerificationRequest['status'] | 'all' }))
                 setCurrentPage(1)
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

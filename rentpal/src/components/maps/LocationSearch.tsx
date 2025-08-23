@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { locationService, Coordinates, formatDistance } from '@/lib/location'
 import { ItemWithDetails } from '@/types/database'
 import { itemService } from '@/lib/database'
 import MapContainer, { MapMarker } from './MapContainer'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface LocationSearchProps {
   initialLocation?: Coordinates
@@ -45,9 +46,9 @@ export default function LocationSearch({
     if (filters.location) {
       searchItems()
     }
-  }, [filters])
+  }, [filters, searchItems])
 
-  const searchItems = async () => {
+  const searchItems = useCallback(async () => {
     if (!filters.location) return
 
     setLoading(true)
@@ -108,7 +109,7 @@ export default function LocationSearch({
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
   const handleLocationSearch = async (query: string) => {
     if (!query.trim()) return
@@ -117,7 +118,7 @@ export default function LocationSearch({
       const result = await locationService.geocodeAddress(query)
       setFilters(prev => ({ ...prev, location: result.coordinates }))
       onLocationChange?.(result.coordinates, filters.radius)
-    } catch (err) {
+    } catch {
       setError('Location not found')
     }
   }
@@ -127,7 +128,7 @@ export default function LocationSearch({
       const coordinates = await locationService.getCurrentLocation()
       setFilters(prev => ({ ...prev, location: coordinates }))
       onLocationChange?.(coordinates, filters.radius)
-    } catch (err) {
+    } catch {
       setError('Unable to get your location')
     }
   }
@@ -172,7 +173,7 @@ export default function LocationSearch({
             longitude: item.location_longitude
           },
           title: item.title,
-          description: `$${item.daily_rate}/day • ${formatDistance((item as any).distance)}`,
+          description: `$${item.daily_rate}/day • ${formatDistance((item as ItemWithDetails & { distance: number }).distance)}`,
           onClick: () => setSelectedItem(item)
         })
       }
@@ -247,7 +248,7 @@ export default function LocationSearch({
             <label className="text-sm font-medium text-gray-700">Sort by:</label>
             <select
               value={filters.sortBy}
-              onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value as any }))}
+              onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value as 'distance' | 'price' | 'rating' | 'newest' }))}
               className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="distance">Distance</option>
@@ -330,9 +331,11 @@ export default function LocationSearch({
                   <div className="flex space-x-4">
                     <div className="flex-shrink-0">
                       {item.images && item.images.length > 0 ? (
-                        <img
+                        <Image
                           src={item.images[0].image_url}
                           alt={item.title}
+                          width={96}
+                          height={96}
                           className="w-24 h-24 rounded-lg object-cover"
                         />
                       ) : (
@@ -354,7 +357,7 @@ export default function LocationSearch({
                             {item.category?.name}
                           </p>
                           <div className="flex items-center mt-2 space-x-4 text-sm text-gray-600">
-                            <span>{formatDistance((item as any).distance)}</span>
+                            <span>{formatDistance((item as ItemWithDetails & { distance: number }).distance)}</span>
                             <span>•</span>
                             <span>{item.location_city}, {item.location_state}</span>
                             {item.rating > 0 && (
@@ -422,9 +425,11 @@ export default function LocationSearch({
               <h3 className="text-lg font-medium text-gray-900 mb-4">Selected Item</h3>
               
               {selectedItem.images && selectedItem.images.length > 0 && (
-                <img
+                <Image
                   src={selectedItem.images[0].image_url}
                   alt={selectedItem.title}
+                  width={300}
+                  height={192}
                   className="w-full h-48 rounded-lg object-cover mb-4"
                 />
               )}
@@ -437,7 +442,7 @@ export default function LocationSearch({
               <div className="space-y-2 text-sm text-gray-600 mb-4">
                 <div className="flex justify-between">
                   <span>Distance:</span>
-                  <span>{formatDistance((selectedItem as any).distance)}</span>
+                  <span>{formatDistance((selectedItem as ItemWithDetails & { distance: number }).distance)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Daily Rate:</span>

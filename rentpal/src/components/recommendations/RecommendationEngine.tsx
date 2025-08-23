@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { itemService, bookingService, favoriteService } from '@/lib/database'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface RecommendationEngineProps {
   currentItem?: ItemWithDetails
@@ -140,7 +141,7 @@ export default function RecommendationEngine({
   const calculateRecommendationScore = (
     item: ItemWithDetails,
     context: {
-      userBookings: any[]
+      userBookings: Array<{ item: ItemWithDetails; daily_rate: number }>
       userFavorites: ItemWithDetails[]
       currentItem?: ItemWithDetails
     }
@@ -393,9 +394,11 @@ export default function RecommendationEngine({
           >
             <div className="relative">
               {item.images && item.images.length > 0 ? (
-                <img
+                <Image
                   src={item.images[0].image_url}
                   alt={item.title}
+                  width={300}
+                  height={192}
                   className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
                 />
               ) : (

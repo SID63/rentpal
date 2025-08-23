@@ -4,18 +4,20 @@
 
 // In-memory cache for client-side data
 class MemoryCache {
-  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>()
+  private cache = new Map<string, { data: unknown; timestamp: number; ttl: number }>()
   private maxSize: number
 
   constructor(maxSize = 100) {
     this.maxSize = maxSize
   }
 
-  set(key: string, data: any, ttlMs = 5 * 60 * 1000) { // Default 5 minutes
+  set(key: string, data: unknown, ttlMs = 5 * 60 * 1000) { // Default 5 minutes
     // Remove oldest entries if cache is full
     if (this.cache.size >= this.maxSize) {
       const oldestKey = this.cache.keys().next().value
-      this.cache.delete(oldestKey)
+      if (oldestKey) {
+        this.cache.delete(oldestKey)
+      }
     }
 
     this.cache.set(key, {
@@ -67,11 +69,13 @@ class MemoryCache {
   // Clean up expired entries
   cleanup() {
     const now = Date.now()
-    for (const [key, entry] of this.cache.entries()) {
+    const keysToDelete: string[] = []
+    this.cache.forEach((entry, key) => {
       if (now - entry.timestamp > entry.ttl) {
-        this.cache.delete(key)
+        keysToDelete.push(key)
       }
-    }
+    })
+    keysToDelete.forEach(key => this.cache.delete(key))
   }
 }
 
@@ -93,7 +97,7 @@ if (typeof window !== 'undefined') {
  * Browser storage cache utilities
  */
 export const storageCache = {
-  set: (key: string, data: any, ttlMs = 24 * 60 * 60 * 1000) => { // Default 24 hours
+  set: (key: string, data: unknown, ttlMs = 24 * 60 * 60 * 1000) => { // Default 24 hours
     if (typeof window === 'undefined') return
 
     try {
@@ -162,7 +166,7 @@ export const storageCache = {
               localStorage.removeItem(key)
             }
           }
-        } catch (error) {
+        } catch {
           // Remove corrupted entries
           localStorage.removeItem(key)
         }
@@ -179,7 +183,7 @@ export const cacheKeys = {
   userProfile: (userId: string) => `user_profile_${userId}`,
   item: (itemId: string) => `item_${itemId}`,
   itemsByOwner: (ownerId: string) => `items_owner_${ownerId}`,
-  searchResults: (query: string, filters: any) => {
+  searchResults: (query: string, filters: Record<string, string | number | boolean | null | undefined>) => {
     const filterStr = JSON.stringify(filters)
     return `search_${query}_${btoa(filterStr)}`
   },
@@ -217,7 +221,7 @@ export const withCache = <T>(
         if (useMemory) {
           const cached = memoryCache.get(cacheKey)
           if (cached) {
-            resolve(cached)
+            resolve(cached as T)
             return
           }
         }
@@ -292,6 +296,11 @@ export const invalidateCache = {
         memoryCache.delete(key)
       }
     })
+  },
+
+  searchResults: () => {
+    // Alias for search() to match usage in database.ts
+    invalidateCache.search()
   },
 
   bookings: (userId: string) => {

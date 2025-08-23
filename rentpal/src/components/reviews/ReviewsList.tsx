@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Review } from '@/types/database'
 import { reviewService } from '@/lib/database'
 
@@ -22,13 +22,7 @@ export default function ReviewsList({
   const [error, setError] = useState<string | null>(null)
   const [displayCount, setDisplayCount] = useState(showAll ? reviews.length : 5)
 
-  useEffect(() => {
-    if (initialReviews.length === 0) {
-      fetchReviews()
-    }
-  }, [itemId, initialReviews.length])
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -40,7 +34,13 @@ export default function ReviewsList({
     } finally {
       setLoading(false)
     }
-  }
+  }, [itemId, showAll])
+
+  useEffect(() => {
+    if (initialReviews.length === 0) {
+      fetchReviews()
+    }
+  }, [itemId, initialReviews.length, fetchReviews])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

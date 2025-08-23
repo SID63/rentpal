@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { BookingWithDetails } from '@/types/database'
 import { useAuth } from '@/contexts/AuthContext'
+import Image from 'next/image'
 
 interface ContactInfoProps {
   booking: BookingWithDetails
@@ -58,9 +59,11 @@ export default function ContactInfo({ booking, className = "" }: ContactInfoProp
               <div className="bg-white rounded-lg p-3 border border-blue-200">
                 <div className="flex items-center space-x-3 mb-3">
                   {contactPerson.avatar_url ? (
-                    <img
+                    <Image
                       src={contactPerson.avatar_url}
                       alt={contactPerson.full_name}
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                   ) : (

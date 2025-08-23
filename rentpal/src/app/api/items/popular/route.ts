@@ -5,7 +5,7 @@ export async function GET() {
   try {
     // Return an empty list for now
     return NextResponse.json({ items: [] })
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'failed_to_fetch' }, { status: 500 })
   }
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useCategories } from '@/hooks/useDatabase'
 import { Category } from '@/types/database'
+import Image from 'next/image'
 
 interface CategoryGridProps {
   onCategorySelect?: (category: Category) => void
@@ -89,9 +90,11 @@ export default function CategoryGrid({
               >
                 {/* Category Icon */}
                 {category.icon_url ? (
-                  <img
+                  <Image
                     src={category.icon_url}
                     alt={category.name}
+                    width={48}
+                    height={48}
                     className="w-12 h-12 mx-auto mb-3"
                   />
                 ) : (

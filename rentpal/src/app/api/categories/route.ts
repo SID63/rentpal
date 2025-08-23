@@ -1,11 +1,39 @@
 import { NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
 
-// Minimal placeholder route to avoid 404s. Replace with real data fetching.
 export async function GET() {
   try {
-    // Return an empty list for now
-    return NextResponse.json({ categories: [] })
-  } catch (e) {
-    return NextResponse.json({ error: 'failed_to_fetch' }, { status: 500 })
+    console.log('API: Fetching categories...')
+    
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+
+    if (error) {
+      console.error('API: Categories fetch error:', error)
+      return NextResponse.json({
+        success: false,
+        error: error.message,
+        categories: []
+      })
+    }
+
+    console.log('API: Categories fetched successfully:', data?.length || 0)
+    
+    return NextResponse.json({
+      success: true,
+      categories: data || [],
+      count: data?.length || 0
+    })
+    
+  } catch (error) {
+    console.error('API: Exception:', error)
+    return NextResponse.json({
+      success: false,
+      error: String(error),
+      categories: []
+    })
   }
 }

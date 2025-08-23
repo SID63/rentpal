@@ -23,10 +23,8 @@ export default function ReviewModeration({
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportingReviewId, setReportingReviewId] = useState<string | null>(null)
   const [reportReason, setReportReason] = useState('')
-  const { user } = useAuth()
-
   // Mock moderation status - in real app this would come from database
-  const getReviewStatus = (reviewId: string): 'pending' | 'approved' | 'rejected' | 'reported' => {
+  const getReviewStatus = (): 'pending' | 'approved' | 'rejected' | 'reported' => {
     // This is mock data - in real implementation, this would be part of the review data
     return 'approved'
   }

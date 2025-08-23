@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@/test/utils/test-utils'
+import { render, screen } from '@/test/utils/test-utils'
 import userEvent from '@testing-library/user-event'
 import { UserDashboard } from '../UserDashboard'
 import { mockUser, mockProfile, mockItem, mockBooking } from '@/test/utils/test-utils'

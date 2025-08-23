@@ -101,7 +101,7 @@ describe('Authentication Flow Integration', () => {
   })
 
   it('handles authentication state changes correctly', async () => {
-    let authStateCallback: any
+    let authStateCallback: (event: string, session: unknown) => void
 
     mockOnAuthStateChange.mockImplementation((callback) => {
       authStateCallback = callback

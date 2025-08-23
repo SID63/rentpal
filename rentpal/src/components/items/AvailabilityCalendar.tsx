@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ItemAvailability } from '@/types/database'
 
@@ -84,11 +84,7 @@ export default function AvailabilityCalendar({
     })
   }
 
-  useEffect(() => {
-    fetchAvailability()
-  }, [itemId, currentDate])
-
-  const fetchAvailability = async () => {
+  const fetchAvailability = useCallback(async () => {
     if (!itemId) return
 
     setLoading(true)
@@ -120,7 +116,11 @@ export default function AvailabilityCalendar({
     } finally {
       setLoading(false)
     }
-  }
+  }, [itemId, currentMonth, currentYear, onAvailabilityChange])
+
+  useEffect(() => {
+    fetchAvailability()
+  }, [fetchAvailability])
 
   const toggleDayAvailability = async (date: Date) => {
     if (readOnly || date < today) return
@@ -132,12 +132,12 @@ export default function AvailabilityCalendar({
     try {
       if (existingAvailability) {
         // Update existing record
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('item_availability')
           .update({ 
             is_available: newIsAvailable,
             blocked_reason: newIsAvailable ? null : 'Owner unavailable'
-          })
+          } as any)
           .eq('id', existingAvailability.id)
 
         if (error) {
@@ -146,14 +146,14 @@ export default function AvailabilityCalendar({
         }
       } else {
         // Create new record
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('item_availability')
           .insert({
             item_id: itemId,
             date: dateString,
             is_available: newIsAvailable,
             blocked_reason: newIsAvailable ? null : 'Owner unavailable'
-          })
+          } as any)
 
         if (error) {
           setError('Failed to update availability')

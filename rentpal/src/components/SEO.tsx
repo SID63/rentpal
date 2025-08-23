@@ -1,5 +1,6 @@
-import Head from 'next/head'
+import Script from 'next/script'
 import { generateStructuredData, generateMetadata } from '@/lib/seo'
+
 import type { Metadata } from 'next'
 
 /**
@@ -9,31 +10,23 @@ interface SEOProps {
   title?: string
   description?: string
   keywords?: string[]
-  structuredData?: any
+  structuredData?: Record<string, unknown>
   children?: React.ReactNode
 }
 
 export const SEO: React.FC<SEOProps> = ({ title, description, keywords, structuredData, children }) => {
-  const meta: Metadata = generateMetadata({ title, description, keywords })
+  // Titles and meta should be handled via Next.js Metadata API in app/ router.
+  // We only inject structured data here to avoid next/head usage warnings.
+  const _meta: Metadata = generateMetadata({ title, description, keywords })
   return (
-    <Head>
-      {meta.title && <title>{String(meta.title)}</title>}
-      {meta.description && (
-        <meta name="description" content={meta.description as string} />
-      )}
-      {meta.keywords && (
-        <meta name="keywords" content={meta.keywords as string} />
-      )}
+    <>
       {structuredData && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(structuredData),
-          }}
-        />
+        <Script id="seo-structured-data" type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </Script>
       )}
       {children}
-    </Head>
+    </>
   )
 }
 

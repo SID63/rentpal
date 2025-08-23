@@ -1,4 +1,15 @@
-import * as Sentry from '@sentry/nextjs'
+import * as Sentry from '@sentry/react'
+import type { 
+  MonitoringContext, 
+  WebVitalsMetric,
+  LogLevel 
+} from '../types/monitoring'
+
+declare global {
+  interface Window {
+    gtag: (...args: unknown[]) => void
+  }
+}
 
 /**
  * Initialize error tracking and monitoring
@@ -12,13 +23,17 @@ export const initializeMonitoring = () => {
       debug: false,
       replaysOnErrorSampleRate: 0.1,
       replaysSessionSampleRate: 0.0,
+      // Remove Prisma integration to avoid OpenTelemetry dynamic import warnings
+      integrations(integrations) {
+        return integrations.filter((i) => i.name !== 'Prisma')
+      },
 
       // Filter out common non-critical errors
       beforeSend(event, hint) {
         const original = hint.originalException as unknown
         const message =
-          original && typeof original === 'object' && 'message' in (original as any)
-            ? String((original as any).message)
+          original && typeof original === 'object' && 'message' in original
+            ? String((original as Record<string, unknown>).message)
             : undefined
 
         // Filter out network errors that are not actionable
@@ -58,12 +73,15 @@ export const initializeMonitoring = () => {
 /**
  * Log custom events and errors
  */
-export const logError = (error: Error, context?: Record<string, any>) => {
+export const logError = (error: Error, context?: MonitoringContext) => {
   if (process.env.NODE_ENV === 'production') {
     Sentry.withScope((scope) => {
       if (context) {
         Object.keys(context).forEach((key) => {
-          scope.setContext(key, context[key])
+          const value = context[key]
+          if (value !== undefined && value !== null) {
+            scope.setContext(key, value as Record<string, unknown>)
+          }
         })
       }
       Sentry.captureException(error)
@@ -76,18 +94,38 @@ export const logError = (error: Error, context?: Record<string, any>) => {
 /**
  * Log custom messages
  */
-export const logMessage = (message: string, level: 'info' | 'warning' | 'error' = 'info', extra?: Record<string, any>) => {
+export const logMessage = (message: string, level: LogLevel = 'info', extra?: MonitoringContext) => {
   if (process.env.NODE_ENV === 'production') {
     Sentry.withScope((scope) => {
       if (extra) {
         Object.keys(extra).forEach((key) => {
-          scope.setExtra(key, extra[key])
+          const value = extra[key]
+          if (value !== undefined) {
+            scope.setExtra(key, value)
+          }
         })
       }
-      Sentry.captureMessage(message, level)
+      const sentryLevel: 'debug' | 'info' | 'warning' | 'error' = level === 'critical' ? 'error' : level
+      Sentry.captureMessage(message, sentryLevel)
     })
   } else {
-    console[level === 'warning' ? 'warn' : level]('Message:', message, extra)
+    const consoleMethod = level === 'warning' ? 'warn' : level === 'critical' ? 'error' : level
+    switch (consoleMethod) {
+      case 'debug':
+        console.debug('Message:', message, extra)
+        break
+      case 'info':
+        console.info('Message:', message, extra)
+        break
+      case 'warn':
+        console.warn('Message:', message, extra)
+        break
+      case 'error':
+        console.error('Message:', message, extra)
+        break
+      default:
+        console.log('Message:', message, extra)
+    }
   }
 }
 
@@ -111,7 +149,7 @@ export const setUserContext = (user: {
 /**
  * Add breadcrumb for debugging
  */
-export const addBreadcrumb = (message: string, category: string, data?: Record<string, any>) => {
+export const addBreadcrumb = (message: string, category: string, data?: Record<string, unknown>) => {
   if (process.env.NODE_ENV === 'production') {
     Sentry.addBreadcrumb({
       message,
@@ -156,13 +194,15 @@ export const measurePerformance = async <T>(
     const endTime = performance.now()
     
     logMessage(`Performance: ${name} took ${endTime - startTime}ms`, 'info', {
-      duration: endTime - startTime,
-      operation: name,
+      metadata: {
+        duration: endTime - startTime,
+        operation: name,
+      }
     })
     
     return result
   } catch (error) {
-    logError(error as Error, { operation: name })
+    logError(error as Error, { action: name })
     throw error
   } finally {
     // startSpan above auto-finishes when the callback resolves/rejects
@@ -175,7 +215,7 @@ export const measurePerformance = async <T>(
 /**
  * Web Vitals monitoring
  */
-export const reportWebVitals = (metric: any) => {
+export const reportWebVitals = (metric: WebVitalsMetric) => {
   if (process.env.NODE_ENV === 'production') {
     // Report to Sentry
     Sentry.addBreadcrumb({
@@ -191,8 +231,8 @@ export const reportWebVitals = (metric: any) => {
     })
 
     // Report to analytics if available
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', metric.name, {
+    if (typeof window !== 'undefined' && 'gtag' in window && typeof window.gtag === 'function') {
+      window.gtag('event', metric.name, {
         event_category: 'Web Vitals',
         value: Math.round(metric.name === 'CLS' ? metric.value * 1000 : metric.value),
         event_label: metric.id,
@@ -205,45 +245,74 @@ export const reportWebVitals = (metric: any) => {
 /**
  * API error handler
  */
-export const handleApiError = (error: any, endpoint: string) => {
-  const errorInfo = {
-    endpoint,
-    status: error.status || error.response?.status,
-    message: error.message || error.response?.data?.message,
-    stack: error.stack,
+export const handleApiError = (error: unknown, endpoint: string): string => {
+  interface ApiError {
+    status?: number
+    message?: string
+    stack?: string
+    response?: {
+      status?: number
+      data?: {
+        message?: string
+      }
+    }
   }
 
-  logError(error, { api: errorInfo })
+  const errorObj = error as ApiError
+  const response = errorObj?.response
+  const responseData = response?.data
+  
+  const errorInfo = {
+    endpoint,
+    status: errorObj?.status || response?.status,
+    message: errorObj?.message || responseData?.message,
+    stack: errorObj?.stack,
+  }
+
+  logError(error instanceof Error ? error : new Error(String(error)), { 
+    metadata: { api: errorInfo } 
+  })
   
   // Return user-friendly error message
-  if (error.status === 401) {
+  const status = errorObj?.status || response?.status
+  if (status === 401) {
     return 'Authentication required. Please log in again.'
-  } else if (error.status === 403) {
+  } else if (status === 403) {
     return 'You do not have permission to perform this action.'
-  } else if (error.status === 404) {
+  } else if (status === 404) {
     return 'The requested resource was not found.'
-  } else if (error.status >= 500) {
+  } else if (status && status >= 500) {
     return 'Server error. Please try again later.'
   } else {
-    return error.message || 'An unexpected error occurred.'
+    return errorObj?.message || 'An unexpected error occurred.'
   }
 }
 
 /**
  * Database error handler
  */
-export const handleDatabaseError = (error: any, operation: string) => {
-  const errorInfo = {
-    operation,
-    code: error.code,
-    message: error.message,
-    details: error.details,
+export const handleDatabaseError = (error: unknown, operation: string): string => {
+  interface DatabaseError {
+    code?: string
+    message?: string
+    details?: string
   }
 
-  logError(error, { database: errorInfo })
+  const errorObj = error as DatabaseError
+  const errorInfo = {
+    operation,
+    code: errorObj?.code,
+    message: errorObj?.message,
+    details: errorObj?.details,
+  }
+
+  logError(error instanceof Error ? error : new Error(String(error)), { 
+    metadata: { database: errorInfo } 
+  })
   
   // Return user-friendly error message based on error code
-  switch (error.code) {
+  const code = errorObj?.code
+  switch (code) {
     case '23505': // Unique violation
       return 'This item already exists.'
     case '23503': // Foreign key violation

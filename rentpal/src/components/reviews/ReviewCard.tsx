@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ReviewWithDetails } from '@/types/database'
 import { useAuth } from '@/contexts/AuthContext'
+import Image from 'next/image'
 
 interface ReviewCardProps {
   review: ReviewWithDetails
@@ -97,9 +98,11 @@ export default function ReviewCard({
           {showReviewer && (
             <div className="flex-shrink-0">
               {review.reviewer.avatar_url ? (
-                <img
+                <Image
                   src={review.reviewer.avatar_url}
                   alt={review.reviewer.full_name}
+                  width={40}
+                  height={40}
                   className="w-10 h-10 rounded-full object-cover"
                 />
               ) : (

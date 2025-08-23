@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { adminService, trustSafetyService, AdminUser, TrustScore } from '@/lib/admin'
 import AdminLayout from '@/components/admin/AdminLayout'
 
@@ -18,15 +18,9 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     loadCurrentAdmin()
-  }, [])
+  }, [loadCurrentAdmin])
 
-  useEffect(() => {
-    if (currentAdmin) {
-      loadTrustScores()
-    }
-  }, [currentAdmin, filters, currentPage])
-
-  const loadCurrentAdmin = async () => {
+  const loadCurrentAdmin = useCallback(async () => {
     try {
       const admin = await adminService.getCurrentAdmin()
       setCurrentAdmin(admin)
@@ -35,9 +29,9 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const loadTrustScores = async () => {
+  const loadTrustScores = useCallback(async () => {
     try {
       const { scores, total } = await trustSafetyService.getTrustScores({
         min_score: filters.min_score,
@@ -50,7 +44,17 @@ export default function AdminUsersPage() {
     } catch (error) {
       console.error('Failed to load trust scores:', error)
     }
-  }
+  }, [filters.min_score, filters.max_score, currentPage])
+
+  useEffect(() => {
+    loadCurrentAdmin()
+  }, [loadCurrentAdmin])
+
+  useEffect(() => {
+    if (currentAdmin) {
+      loadTrustScores()
+    }
+  }, [currentAdmin, loadTrustScores])
 
   const getTrustScoreColor = (score: number) => {
     if (score >= 80) return 'bg-green-100 text-green-800'
@@ -84,7 +88,7 @@ export default function AdminUsersPage() {
       <AdminLayout>
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600">You don't have permission to access this page.</p>
+          <p className="text-gray-600">You don&apos;t have permission to access this page.</p>
         </div>
       </AdminLayout>
     )

@@ -12,8 +12,7 @@ export default function DistanceCalculator({ className = "" }: DistanceCalculato
   const [startLocation, setStartLocation] = useState<Coordinates | null>(null)
   const [endLocation, setEndLocation] = useState<Coordinates | null>(null)
   const [distance, setDistance] = useState<number | null>(null)
-  const [startAddress, setStartAddress] = useState('')
-  const [endAddress, setEndAddress] = useState('')
+
 
   const calculateDistance = () => {
     if (startLocation && endLocation) {
@@ -22,7 +21,7 @@ export default function DistanceCalculator({ className = "" }: DistanceCalculato
     }
   }
 
-  const handleStartLocationSelect = (location: any) => {
+  const handleStartLocationSelect = (location: { coordinates: Coordinates; address: Record<string, string> }) => {
     setStartLocation(location.coordinates)
     setStartAddress(locationService.formatAddress(location.address))
     
@@ -33,7 +32,7 @@ export default function DistanceCalculator({ className = "" }: DistanceCalculato
     }
   }
 
-  const handleEndLocationSelect = (location: any) => {
+  const handleEndLocationSelect = (location: { coordinates: Coordinates; address: Record<string, string> }) => {
     setEndLocation(location.coordinates)
     setEndAddress(locationService.formatAddress(location.address))
     
@@ -52,51 +51,7 @@ export default function DistanceCalculator({ className = "" }: DistanceCalculato
     setEndAddress('')
   }
 
-  const getMapCenter = (): Coordinates => {
-    if (startLocation && endLocation) {
-      return {
-        latitude: (startLocation.latitude + endLocation.latitude) / 2,
-        longitude: (startLocation.longitude + endLocation.longitude) / 2
-      }
-    }
-    return startLocation || endLocation || { latitude: 39.8283, longitude: -98.5795 }
-  }
 
-  const getMapMarkers = () => {
-    const markers = []
-    
-    if (startLocation) {
-      markers.push({
-        id: 'start',
-        position: startLocation,
-        title: 'Start Location',
-        description: startAddress,
-        icon: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16" cy="16" r="12" fill="#10B981" stroke="#ffffff" stroke-width="3"/>
-            <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">A</text>
-          </svg>
-        `)
-      })
-    }
-    
-    if (endLocation) {
-      markers.push({
-        id: 'end',
-        position: endLocation,
-        title: 'End Location',
-        description: endAddress,
-        icon: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16" cy="16" r="12" fill="#EF4444" stroke="#ffffff" stroke-width="3"/>
-            <text x="16" y="20" text-anchor="middle" fill="white" font-size="12" font-weight="bold">B</text>
-          </svg>
-        `)
-      })
-    }
-    
-    return markers
-  }
 
   return (
     <div className={className}>

@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import EnhancedProfileImageUpload from './EnhancedProfileImageUpload'
 
 const profileSetupSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -23,6 +24,7 @@ type ProfileSetupData = z.infer<typeof profileSetupSchema>
 export default function ProfileSetup() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const { user } = useAuth()
   const router = useRouter()
 
@@ -57,6 +59,7 @@ export default function ProfileSetup() {
           state: data.state,
           zip_code: data.zipCode,
           bio: data.bio || null,
+          avatar_url: avatarUrl,
           verification_status: 'pending',
           rating: 0,
           total_reviews: 0
@@ -88,6 +91,10 @@ export default function ProfileSetup() {
     }
   }
 
+  const handleAvatarChange = (url: string) => {
+    setAvatarUrl(url)
+  }
+
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
       <div className="mb-6">
@@ -104,6 +111,18 @@ export default function ProfileSetup() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Profile Image Upload */}
+        <div>
+          <EnhancedProfileImageUpload
+            currentImageUrl={avatarUrl}
+            onImageChange={handleAvatarChange}
+            disabled={isLoading}
+            showLabel={true}
+            showDefaultFallback={false}
+            className="mb-6"
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">

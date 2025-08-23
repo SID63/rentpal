@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { trustSafetyService, FlaggedContent, AdminUser } from '@/lib/admin'
 
 interface ContentModerationProps {
@@ -8,7 +8,7 @@ interface ContentModerationProps {
   className?: string
 }
 
-export default function ContentModeration({ currentAdmin, className = "" }: ContentModerationProps) {
+export default function ContentModeration({ className = "" }: Omit<ContentModerationProps, 'currentAdmin'>) {
   const [flaggedContent, setFlaggedContent] = useState<FlaggedContent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -21,14 +21,10 @@ export default function ContentModeration({ currentAdmin, className = "" }: Cont
   const [totalContent, setTotalContent] = useState(0)
   const itemsPerPage = 10
 
-  useEffect(() => {
-    fetchFlaggedContent()
-  }, [filters, currentPage])
-
-  const fetchFlaggedContent = async () => {
+  const fetchFlaggedContent = useCallback(async () => {
     try {
       setLoading(true)
-      const filterParams: any = {
+      const filterParams: Record<string, unknown> = {
         limit: itemsPerPage,
         offset: (currentPage - 1) * itemsPerPage
       }
@@ -50,7 +46,11 @@ export default function ContentModeration({ currentAdmin, className = "" }: Cont
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters.content_type, filters.reviewed, currentPage])
+
+  useEffect(() => {
+    fetchFlaggedContent()
+  }, [fetchFlaggedContent])
 
   const handleReviewContent = async (contentId: string, decision: 'approved' | 'rejected' | 'needs_human_review') => {
     try {
@@ -153,7 +153,7 @@ export default function ContentModeration({ currentAdmin, className = "" }: Cont
             <select
               value={filters.reviewed}
               onChange={(e) => {
-                setFilters(prev => ({ ...prev, reviewed: e.target.value as any }))
+                setFilters(prev => ({ ...prev, reviewed: e.target.value as 'all' | 'true' | 'false' }))
                 setCurrentPage(1)
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

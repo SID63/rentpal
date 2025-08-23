@@ -3,6 +3,7 @@
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
 import Link from 'next/link'
 import FavoriteButton from '@/components/favorites/FavoriteButton'
+import Image from 'next/image'
 
 interface RecentlyViewedProps {
   className?: string
@@ -50,9 +51,11 @@ export default function RecentlyViewed({ className = "", maxItems = 6 }: Recentl
             <div className="relative">
               <Link href={`/items/${item.id}`}>
                 {item.images && item.images.length > 0 ? (
-                  <img
+                  <Image
                     src={item.images[0].image_url}
                     alt={item.title}
+                    width={300}
+                    height={128}
                     className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-200"
                   />
                 ) : (

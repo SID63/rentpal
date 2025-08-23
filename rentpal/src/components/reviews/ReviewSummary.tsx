@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Review } from '@/types/database'
 
 interface ReviewSummaryProps {
@@ -26,9 +26,9 @@ export default function ReviewSummary({
 
   useEffect(() => {
     calculateRatingBreakdown()
-  }, [reviews])
+  }, [calculateRatingBreakdown])
 
-  const calculateRatingBreakdown = () => {
+  const calculateRatingBreakdown = useCallback(() => {
     const breakdown = [5, 4, 3, 2, 1].map(rating => {
       const count = reviews.filter(review => review.rating === rating).length
       const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0
@@ -41,7 +41,7 @@ export default function ReviewSummary({
     })
     
     setRatingBreakdown(breakdown)
-  }
+  }, [reviews])
 
   const averageRating = totalRating || (
     reviews.length > 0 

@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useCategories } from '@/hooks/useDatabase'
 import { itemService } from '@/lib/database'
 import { ItemWithDetails } from '@/types/database'
 import { locationService, Coordinates } from '@/lib/location'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface SearchFilters {
   query: string
@@ -66,20 +67,109 @@ export default function AdvancedSearch({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [priceRange, setPriceRange] = useState([filters.minPrice, filters.maxPrice])
 
-  useEffect(() => {
-    onFiltersChange?.(filters)
-    searchItems()
-  }, [filters])
+  const calculateDistance = useCallback((point1: { lat: number; lng: number }, point2: { lat: number; lng: number }) => {
+    const R = 3959 // Earth's radius in miles
+    const dLat = (point2.lat - point1.lat) * Math.PI / 180
+    const dLon = (point2.lng - point1.lng) * Math.PI / 180
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(point1.lat * Math.PI / 180) * Math.cos(point2.lat * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    return R * c
+  }, [])
 
-  const searchItems = async () => {
+  const calculateRelevanceScore = useCallback((item: ItemWithDetails, query?: string) => {
+    let score = 0
+    
+    if (query) {
+      const searchText = query.toLowerCase()
+      
+      // Title match (highest weight)
+      if (item.title.toLowerCase().includes(searchText)) {
+        score += 10
+      }
+      
+      // Category match
+      if (item.category?.name.toLowerCase().includes(searchText)) {
+        score += 5
+      }
+      
+      // Description match (lower weight)
+      if (item.description.toLowerCase().includes(searchText)) {
+        score += 2
+      }
+    }
+    
+    // Add base scoring factors
+    score += item.rating * 2
+    score += Math.min(item.total_reviews / 10, 5) // Cap review bonus
+    score += Math.min(item.favorites_count / 5, 3) // Cap favorites bonus
+    
+    return score
+  }, [])
+
+  const sortItems = useCallback((items: ItemWithDetails[]) => {
+    return items.sort((a, b) => {
+      switch (filters.sortBy) {
+        case 'price_low':
+          return a.daily_rate - b.daily_rate
+        case 'price_high':
+          return b.daily_rate - a.daily_rate
+        case 'rating':
+          // Secondary sort by number of reviews
+          if (b.rating === a.rating) {
+            return b.total_reviews - a.total_reviews
+          }
+          return b.rating - a.rating
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        case 'popular':
+          // Sort by combination of views, favorites, and bookings
+          const aPopularity = a.views_count * 0.1 + a.favorites_count * 0.5 + a.total_reviews * 0.4
+          const bPopularity = b.views_count * 0.1 + b.favorites_count * 0.5 + b.total_reviews * 0.4
+          return bPopularity - aPopularity
+        case 'trending':
+          // Items with recent activity (views, favorites, bookings)
+          const now = Date.now()
+          const aRecency = (now - new Date(a.created_at).getTime()) / (1000 * 60 * 60 * 24) // days
+          const bRecency = (now - new Date(b.created_at).getTime()) / (1000 * 60 * 60 * 24)
+          
+          // Trending score: recent activity weighted by recency
+          const aTrending = (a.views_count + a.favorites_count * 2) / Math.max(aRecency, 1)
+          const bTrending = (b.views_count + b.favorites_count * 2) / Math.max(bRecency, 1)
+          return bTrending - aTrending
+        case 'distance':
+          if (filters.coordinates) {
+            const aDistance = calculateDistance(
+              { lat: filters.coordinates.latitude, lng: filters.coordinates.longitude },
+              { lat: a.location_latitude || 0, lng: a.location_longitude || 0 }
+            )
+            const bDistance = calculateDistance(
+              { lat: filters.coordinates.latitude, lng: filters.coordinates.longitude },
+              { lat: b.location_latitude || 0, lng: b.location_longitude || 0 }
+            )
+            return aDistance - bDistance
+          }
+          return 0
+        case 'relevance':
+        default:
+          // Enhanced relevance scoring
+          const aRelevance = calculateRelevanceScore(a, filters.query)
+          const bRelevance = calculateRelevanceScore(b, filters.query)
+          return bRelevance - aRelevance
+      }
+    })
+  }, [filters.sortBy, filters.coordinates, filters.query, calculateDistance, calculateRelevanceScore])
+
+  const searchItems = useCallback(async () => {
     setLoading(true)
     setError(null)
 
     try {
       // Build search parameters
-      const searchParams: any = {
+      const searchParams: Record<string, unknown> = {
         limit: 50
       }
 
@@ -178,114 +268,16 @@ export default function AdvancedSearch({
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters, sortItems])
 
-  const sortItems = (items: ItemWithDetails[]) => {
-    return items.sort((a, b) => {
-      switch (filters.sortBy) {
-        case 'price_low':
-          return a.daily_rate - b.daily_rate
-        case 'price_high':
-          return b.daily_rate - a.daily_rate
-        case 'rating':
-          // Secondary sort by number of reviews
-          if (b.rating === a.rating) {
-            return b.total_reviews - a.total_reviews
-          }
-          return b.rating - a.rating
-        case 'newest':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        case 'popular':
-          // Sort by combination of views, favorites, and bookings
-          const aPopularity = a.views_count * 0.1 + a.favorites_count * 0.5 + a.total_reviews * 0.4
-          const bPopularity = b.views_count * 0.1 + b.favorites_count * 0.5 + b.total_reviews * 0.4
-          return bPopularity - aPopularity
-        case 'trending':
-          // Items with recent activity (views, favorites, bookings)
-          const now = Date.now()
-          const aRecency = (now - new Date(a.created_at).getTime()) / (1000 * 60 * 60 * 24) // days
-          const bRecency = (now - new Date(b.created_at).getTime()) / (1000 * 60 * 60 * 24)
-          
-          // Trending score: recent activity weighted by recency
-          const aTrending = (a.views_count + a.favorites_count * 2) / Math.max(aRecency, 1)
-          const bTrending = (b.views_count + b.favorites_count * 2) / Math.max(bRecency, 1)
-          return bTrending - aTrending
-        case 'distance':
-          if (filters.coordinates) {
-            const aDistance = calculateDistance(filters.coordinates, {
-              lat: a.location_latitude || 0,
-              lng: a.location_longitude || 0
-            })
-            const bDistance = calculateDistance(filters.coordinates, {
-              lat: b.location_latitude || 0,
-              lng: b.location_longitude || 0
-            })
-            return aDistance - bDistance
-          }
-          return 0
-        case 'relevance':
-        default:
-          // Enhanced relevance scoring
-          const aRelevance = calculateRelevanceScore(a, filters.query)
-          const bRelevance = calculateRelevanceScore(b, filters.query)
-          return bRelevance - aRelevance
-      }
-    })
-  }
+  // Use useEffect with proper dependency handling
+  useEffect(() => {
+    onFiltersChange?.(filters)
+  }, [filters, onFiltersChange])
 
-  const calculateDistance = (point1: { lat: number; lng: number }, point2: { lat: number; lng: number }) => {
-    const R = 3959 // Earth's radius in miles
-    const dLat = (point2.lat - point1.lat) * Math.PI / 180
-    const dLon = (point2.lng - point1.lng) * Math.PI / 180
-    const a = 
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(point1.lat * Math.PI / 180) * 
-      Math.cos(point2.lat * Math.PI / 180) * 
-      Math.sin(dLon / 2) * Math.sin(dLon / 2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    return R * c
-  }
-
-  const calculateRelevanceScore = (item: ItemWithDetails, query: string) => {
-    let score = 0
-    const lowerQuery = query.toLowerCase()
-    
-    // Title match (highest weight)
-    if (item.title.toLowerCase().includes(lowerQuery)) {
-      score += 10
-      // Exact match bonus
-      if (item.title.toLowerCase() === lowerQuery) {
-        score += 5
-      }
-      // Start of title bonus
-      if (item.title.toLowerCase().startsWith(lowerQuery)) {
-        score += 3
-      }
-    }
-    
-    // Category match
-    if (item.category?.name.toLowerCase().includes(lowerQuery)) {
-      score += 5
-    }
-    
-    // Description match
-    if (item.description.toLowerCase().includes(lowerQuery)) {
-      score += 2
-    }
-    
-    // Quality indicators
-    score += item.rating * 1.5
-    score += Math.min(item.total_reviews * 0.1, 2)
-    score += Math.min(item.views_count * 0.001, 1)
-    
-    // Recency bonus
-    const daysSinceCreated = (Date.now() - new Date(item.created_at).getTime()) / (1000 * 60 * 60 * 24)
-    if (daysSinceCreated < 30) {
-      score += 1
-    }
-    
-    return score
-  }
+  useEffect(() => {
+    searchItems()
+  }, [searchItems])
 
   const handleLocationSearch = async (locationQuery: string) => {
     if (!locationQuery.trim()) {
@@ -305,14 +297,7 @@ export default function AdvancedSearch({
     }
   }
 
-  const handlePriceRangeChange = (newRange: number[]) => {
-    setPriceRange(newRange)
-    setFilters(prev => ({
-      ...prev,
-      minPrice: newRange[0],
-      maxPrice: newRange[1]
-    }))
-  }
+
 
   const clearFilters = () => {
     const clearedFilters: SearchFilters = {
@@ -336,7 +321,6 @@ export default function AdvancedSearch({
       recentlyViewed: false
     }
     setFilters(clearedFilters)
-    setPriceRange([0, 1000])
   }
 
   const formatPrice = (price: number) => {
@@ -676,9 +660,11 @@ export default function AdvancedSearch({
                 >
                   <div className="relative">
                     {item.images && item.images.length > 0 ? (
-                      <img
+                      <Image
                         src={item.images[0].image_url}
                         alt={item.title}
+                        width={300}
+                        height={192}
                         className="w-full h-48 object-cover"
                       />
                     ) : (

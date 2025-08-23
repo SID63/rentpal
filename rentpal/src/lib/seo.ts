@@ -73,7 +73,7 @@ export const generateMetadata = (options: {
           alt: title || siteConfig.name,
         },
       ],
-      type,
+      type: type === 'product' ? 'website' : type,
       publishedTime,
       modifiedTime,
     },
@@ -274,7 +274,7 @@ export const generateSeoUrl = {
 
   category: (slug: string) => `/categories/${slug}`,
 
-  search: (query: string, filters?: Record<string, any>) => {
+  search: (query: string, filters?: Record<string, unknown>) => {
     const params = new URLSearchParams()
     params.set('q', query)
     

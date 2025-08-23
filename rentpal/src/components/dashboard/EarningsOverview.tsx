@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { BookingWithDetails } from '@/types/database'
-import { useAuth } from '@/contexts/AuthContext'
+
 import { useBookings } from '@/hooks/useDatabase'
 
 interface EarningsData {
@@ -32,7 +32,6 @@ interface EarningsOverviewProps {
 }
 
 export default function EarningsOverview({ className = "" }: EarningsOverviewProps) {
-  const { user } = useAuth()
   const { bookings, loading, error } = useBookings('owner')
   const [earningsData, setEarningsData] = useState<EarningsData>({
     totalEarnings: 0,
@@ -49,9 +48,9 @@ export default function EarningsOverview({ className = "" }: EarningsOverviewPro
     if (bookings.length > 0) {
       calculateEarnings()
     }
-  }, [bookings, selectedPeriod])
+  }, [bookings, selectedPeriod, calculateEarnings])
 
-  const calculateEarnings = () => {
+  const calculateEarnings = useCallback(() => {
     const now = new Date()
     const completedBookings = bookings.filter(booking => booking.status === 'completed')
     const pendingBookings = bookings.filter(booking => ['confirmed', 'active'].includes(booking.status))
@@ -92,7 +91,7 @@ export default function EarningsOverview({ className = "" }: EarningsOverviewPro
       monthlyBreakdown,
       recentTransactions
     })
-  }
+  }, [bookings])
 
   const generateMonthlyBreakdown = (completedBookings: BookingWithDetails[]) => {
     const monthlyData: { [key: string]: { earnings: number; bookings: number } } = {}
@@ -314,7 +313,7 @@ export default function EarningsOverview({ className = "" }: EarningsOverviewPro
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              {earningsData.monthlyBreakdown.slice(-6).map((month, index) => (
+              {earningsData.monthlyBreakdown.slice(-6).map((month) => (
                 <div key={month.month} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="text-sm font-medium text-gray-900">{month.month}</div>

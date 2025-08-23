@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@/test/utils/test-utils'
 import userEvent from '@testing-library/user-event'
 import { BookingForm } from '@/components/booking/BookingForm'
-import { BookingConfirmation } from '@/components/booking/BookingConfirmation'
+
 import { ItemDetails } from '@/components/items/ItemDetails'
 import { mockItem, mockBooking } from '@/test/utils/test-utils'
 

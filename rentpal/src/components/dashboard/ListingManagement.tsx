@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ItemWithDetails, ItemStatus } from '@/types/database'
+import { useState } from 'react'
+import { ItemStatus } from '@/types/database'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUserItems } from '@/hooks/useDatabase'
 import { itemService } from '@/lib/database'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface ListingManagementProps {
   className?: string
@@ -343,9 +344,11 @@ export default function ListingManagement({ className = "" }: ListingManagementP
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-12 w-12">
                           {item.images && item.images.length > 0 ? (
-                            <img
+                            <Image
                               src={item.images[0].image_url}
                               alt={item.title}
+                              width={48}
+                              height={48}
                               className="h-12 w-12 rounded-lg object-cover"
                             />
                           ) : (

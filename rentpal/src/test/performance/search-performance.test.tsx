@@ -13,7 +13,7 @@ const generateMockItems = (count: number) => {
     description: `Description for test item ${index}`,
     category: ['tools', 'electronics', 'sports', 'vehicles'][index % 4],
     subcategory: `subcategory-${index % 3}`,
-    condition: ['new', 'like_new', 'good', 'fair'][index % 4] as const,
+    condition: (['new', 'like_new', 'good', 'fair'] as const)[index % 4],
     daily_rate: 10 + (index % 50),
     hourly_rate: 2 + (index % 10),
     security_deposit: 50 + (index % 100),
@@ -34,8 +34,8 @@ const generateMockItems = (count: number) => {
       maximum_rental_period: 168,
     },
     policies: {
-      cancellation_policy: ['flexible', 'moderate', 'strict'][index % 3] as const,
-      pickup_delivery: ['pickup_only', 'delivery_available', 'both'][index % 3] as const,
+      cancellation_policy: (['flexible', 'moderate', 'strict'] as const)[index % 3],
+      pickup_delivery: (['pickup_only', 'delivery_available', 'both'] as const)[index % 3],
       delivery_fee: index % 2 === 0 ? 10 : undefined,
       delivery_radius: index % 2 === 0 ? 10 : undefined,
     },
@@ -103,10 +103,8 @@ describe('Search Performance Tests', () => {
 
   describe('Search Performance', () => {
     it('performs text search efficiently', async () => {
-      const items = generateMockItems(2000)
+      generateMockItems(2000)
       const mockOnSearch = vi.fn()
-
-      const startTime = performance.now()
 
       render(
         <ItemSearch
@@ -115,9 +113,6 @@ describe('Search Performance Tests', () => {
           initialQuery=""
         />
       )
-
-      // Simulate typing search query
-      const searchInput = screen.getByRole('textbox', { name: /search/i })
       
       // Measure search performance
       const searchStartTime = performance.now()
@@ -287,7 +282,7 @@ describe('Search Performance Tests', () => {
             this.onerror?.(new Event('error'))
           }, 100)
         }
-      } as any
+      } as typeof Image
 
       const startTime = performance.now()
 

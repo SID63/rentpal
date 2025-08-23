@@ -24,8 +24,7 @@ export default function ItemCard({
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false)
   const { user } = useAuth()
 
-  const primaryImage = item.images?.find(img => img.is_primary) || item.images?.[0]
-  const imageUrl = primaryImage?.image_url || '/placeholder-item.jpg'
+  const imageUrl = (item.images?.find(img => img.is_primary) || item.images?.[0])?.image_url || '/vercel.svg'
 
   const handleFavoriteToggle = async (e: React.MouseEvent) => {
     e.preventDefault()

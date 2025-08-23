@@ -5,6 +5,7 @@ import { ItemWithDetails } from '@/types/database'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { messageService } from '@/lib/database'
+import Image from 'next/image'
 
 interface StartConversationProps {
   item: ItemWithDetails
@@ -127,9 +128,11 @@ export default function StartConversation({
           {/* Owner Info */}
           <div className="flex items-center space-x-3 mb-4 p-3 bg-gray-50 rounded-lg">
             {item.owner.avatar_url ? (
-              <img
+              <Image
                 src={item.owner.avatar_url}
                 alt={item.owner.full_name}
+                width={40}
+                height={40}
                 className="w-10 h-10 rounded-full object-cover"
               />
             ) : (

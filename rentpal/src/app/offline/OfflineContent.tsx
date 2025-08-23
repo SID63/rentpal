@@ -12,7 +12,7 @@ export default function OfflineContent() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 2v6m0 8v6m8-10h-6m-8 0h6" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">You're Offline</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">You&apos;re Offline</h1>
           <p className="text-gray-600">
             It looks like you&apos;ve lost your internet connection. Some features may not be available.
           </p>

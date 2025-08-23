@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Coordinates } from '@/lib/location'
 
 export interface MapMarker {
@@ -52,7 +52,7 @@ export default function MapContainer({
       // Load Google Maps script if not available
       loadGoogleMapsScript()
     }
-  }, [])
+  }, [initializeMap])
 
   // Update map center when center prop changes
   useEffect(() => {
@@ -66,14 +66,14 @@ export default function MapContainer({
     if (map) {
       updateMarkers()
     }
-  }, [map, markers])
+  }, [map, updateMarkers])
 
   // Show user location if requested
   useEffect(() => {
     if (map && showUserLocation) {
       showCurrentLocation()
     }
-  }, [map, showUserLocation])
+  }, [map, showUserLocation, showCurrentLocation])
 
   const loadGoogleMapsScript = () => {
     // For development, we'll use a fallback map
@@ -83,7 +83,7 @@ export default function MapContainer({
     setIsLoaded(true)
   }
 
-  const initializeMap = () => {
+  const initializeMap = useCallback(() => {
     if (!mapRef.current || !window.google?.maps) return
 
     try {
@@ -120,9 +120,9 @@ export default function MapContainer({
       setError('Failed to initialize map')
       console.error('Map initialization error:', err)
     }
-  }
+  }, [center, zoom, interactive, onMapClick])
 
-  const updateMarkers = () => {
+  const updateMarkers = useCallback(() => {
     if (!map) return
 
     // Clear existing markers
@@ -168,9 +168,9 @@ export default function MapContainer({
     })
 
     setMapMarkers(newMarkers)
-  }
+  }, [map, markers, onMarkerClick])
 
-  const showCurrentLocation = async () => {
+  const showCurrentLocation = useCallback(async () => {
     if (!map) return
 
     try {
@@ -209,7 +209,7 @@ export default function MapContainer({
     } catch (err) {
       console.error('Failed to get user location:', err)
     }
-  }
+  }, [map])
 
   // Fallback map component when Google Maps is not available
   const FallbackMap = () => (

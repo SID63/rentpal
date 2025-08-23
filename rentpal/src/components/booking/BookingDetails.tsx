@@ -5,6 +5,7 @@ import { BookingWithDetails } from '@/types/database'
 import { bookingService } from '@/lib/database'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface BookingDetailsProps {
   booking: BookingWithDetails
@@ -95,7 +96,7 @@ export default function BookingDetails({
 
     try {
       const updatedBooking = await bookingService.updateBooking(booking.id, {
-        status: newStatus as any,
+        status: newStatus as 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled',
         updated_at: new Date().toISOString()
       })
 
@@ -147,9 +148,11 @@ export default function BookingDetails({
         {/* Item Information */}
         <div className="flex items-start space-x-4">
           {booking.item.images && booking.item.images.length > 0 && (
-            <img
+            <Image
               src={booking.item.images[0].image_url}
               alt={booking.item.title}
+              width={80}
+              height={80}
               className="w-20 h-20 rounded-lg object-cover"
             />
           )}

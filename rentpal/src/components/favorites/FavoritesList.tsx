@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { useFavorites } from '@/hooks/useDatabase'
-import { ItemWithDetails } from '@/types/database'
 import FavoriteButton from './FavoriteButton'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface FavoritesListProps {
   className?: string
@@ -76,13 +76,7 @@ export default function FavoritesList({ className = "" }: FavoritesListProps) {
     }).format(price)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
+
 
   const filteredFavorites = getSortedAndFilteredFavorites()
   const categories = getUniqueCategories()
@@ -240,9 +234,11 @@ export default function FavoritesList({ className = "" }: FavoritesListProps) {
                 <>
                   <div className="relative">
                     {item.images && item.images.length > 0 ? (
-                      <img
+                      <Image
                         src={item.images[0].image_url}
                         alt={item.title}
+                        width={300}
+                        height={192}
                         className="w-full h-48 object-cover"
                       />
                     ) : (
@@ -296,9 +292,11 @@ export default function FavoritesList({ className = "" }: FavoritesListProps) {
                 <>
                   <div className="flex-shrink-0 mr-4">
                     {item.images && item.images.length > 0 ? (
-                      <img
+                      <Image
                         src={item.images[0].image_url}
                         alt={item.title}
+                        width={80}
+                        height={80}
                         className="w-20 h-20 rounded-lg object-cover"
                       />
                     ) : (

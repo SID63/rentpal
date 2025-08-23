@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext'
 import AuthGuard from '@/components/auth/AuthGuard'
+import ProfileCompletionBanner from '@/components/profile/ProfileCompletionBanner'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -40,6 +41,9 @@ export default function DashboardPage() {
 
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="px-4 py-6 sm:px-0">
+            {/* Profile completion banner */}
+            <ProfileCompletionBanner className="mb-6" />
+            
             <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <h2 className="text-lg font-medium text-gray-900 mb-4">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ItemWithDetails } from '@/types/database'
 import { itemService } from '@/lib/database'
 import ItemCard from './ItemCard'
@@ -20,11 +20,7 @@ export default function SimilarItems({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchSimilarItems()
-  }, [currentItem.id])
-
-  const fetchSimilarItems = async () => {
+  const fetchSimilarItems = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -80,7 +76,11 @@ export default function SimilarItems({
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentItem.id, currentItem.category_id, currentItem.location_city, currentItem.location_state, limit])
+
+  useEffect(() => {
+    fetchSimilarItems()
+  }, [fetchSimilarItems])
 
   if (loading) {
     return (

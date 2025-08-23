@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ConversationWithDetails } from '@/types/database'
 import { useConversations } from '@/hooks/useDatabase'
 import { useAuth } from '@/contexts/AuthContext'
+import Image from 'next/image'
 
 interface ConversationListProps {
   onConversationSelect?: (conversation: ConversationWithDetails) => void
@@ -140,9 +141,11 @@ export default function ConversationList({
                     {/* Avatar */}
                     <div className="flex-shrink-0">
                       {otherParticipant.avatar_url ? (
-                        <img
+                        <Image
                           src={otherParticipant.avatar_url}
                           alt={otherParticipant.full_name}
+                          width={40}
+                          height={40}
                           className="w-10 h-10 rounded-full object-cover"
                         />
                       ) : (

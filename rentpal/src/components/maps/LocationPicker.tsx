@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { locationService, Coordinates, Address, LocationResult } from '@/lib/location'
+import { locationService, Coordinates, LocationResult } from '@/lib/location'
 import MapContainer, { MapMarker } from './MapContainer'
 
 interface LocationPickerProps {

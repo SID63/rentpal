@@ -29,7 +29,7 @@ const mockMaps = {
 // Mock global google object
 global.google = {
   maps: mockMaps,
-} as any
+} as typeof google
 
 describe('Location Utils', () => {
   beforeEach(() => {

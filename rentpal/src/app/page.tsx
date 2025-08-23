@@ -6,7 +6,6 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import RecommendationEngine from '@/components/recommendations/RecommendationEngine'
 import RecentlyViewed from '@/components/items/RecentlyViewed'
-import InstallPrompt from '@/components/pwa/InstallPrompt'
 import { WebsiteSEO, OrganizationSEO } from '@/components/SEO'
 
 export default function Home() {

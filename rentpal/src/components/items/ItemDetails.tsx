@@ -23,8 +23,33 @@ export default function ItemDetails({ item, onFavoriteChange }: ItemDetailsProps
   const { user } = useAuth()
 
   const images = item.images || []
-  const primaryImage = images.find(img => img.is_primary) || images[0]
-  const displayImages = images.length > 0 ? images : [{ image_url: '/placeholder-item.jpg', alt_text: item.title }]
+  // Normalize potential legacy relative Supabase paths to absolute URLs
+  const normalizeUrl = (url?: string) => {
+    if (!url) return url
+    // Already absolute (http/https) -> leave as is
+    if (/^https?:\/\//i.test(url)) return url
+    // Legacy path starting with /storage/v1/... -> prefix with project URL
+    if (url.startsWith('/storage/')) {
+      const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') || ''
+      return base ? `${base}${url}` : url
+    }
+    return url
+  }
+
+  const normalizedImages = images.map(img => ({
+    ...img,
+    image_url: normalizeUrl(img.image_url) as string,
+  }))
+
+  const displayImages = normalizedImages.length > 0
+    ? normalizedImages
+    : [{ image_url: '/vercel.svg', alt_text: item.title }]
+
+  if (process.env.NODE_ENV !== 'production') {
+    // Helpful during debugging to verify final image sources
+    // eslint-disable-next-line no-console
+    console.debug('[ItemDetails] displayImages', displayImages)
+  }
 
   const handleFavoriteToggle = async () => {
     if (!user) {
@@ -83,14 +108,15 @@ export default function ItemDetails({ item, onFavoriteChange }: ItemDetailsProps
         {/* Image Gallery */}
         <div className="mb-8 lg:mb-0">
           {/* Main Image */}
-          <div className="relative aspect-[4/3] mb-4 rounded-lg overflow-hidden bg-gray-100">
+          <div className="relative w-full mb-4 rounded-lg overflow-hidden bg-gray-100">
             <OptimizedImage
-              src={displayImages[selectedImageIndex]?.image_url || '/placeholder-item.jpg'}
+              src={displayImages[selectedImageIndex]?.image_url}
               alt={displayImages[selectedImageIndex]?.alt_text || item.title}
-              fill
-              className="w-full h-full object-cover"
+              width={800}
+              height={600}
+              className="w-full h-auto object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"
-              priority={selectedImageIndex === 0}
+              priority={true}
             />
             
             {/* Image Navigation */}

@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { performanceMonitor, trackEvent } from '@/lib/analytics'
+import { trackEvent } from '@/lib/analytics'
 import { memoryCache, itemCache, userCache } from '@/lib/cache'
+import { WebVitalsMetric, ErrorInfo } from '@/types/monitoring'
 
 interface MetricCard {
   title: string
@@ -32,8 +33,8 @@ export const MonitoringDashboard: React.FC = () => {
   })
 
   const [metrics, setMetrics] = useState<MetricCard[]>([])
-  const [webVitals, setWebVitals] = useState<any[]>([])
-  const [errors, setErrors] = useState<any[]>([])
+  const [webVitals, setWebVitals] = useState<WebVitalsMetric[]>([])
+  const [errors, setErrors] = useState<ErrorInfo[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Fetch system metrics
@@ -67,7 +68,7 @@ export const MonitoringDashboard: React.FC = () => {
     const monitorPerformance = () => {
       // Memory usage
       if ('memory' in performance) {
-        const memory = (performance as any).memory
+        const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } }).memory
         const memoryUsage = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100
         
         setSystemHealth(prev => ({
@@ -77,7 +78,6 @@ export const MonitoringDashboard: React.FC = () => {
       }
 
       // Cache statistics
-      const totalCacheSize = memoryCache.size() + itemCache.size() + userCache.size()
       const cacheHitRate = 85 // This would be calculated from actual cache hits/misses
       
       setSystemHealth(prev => ({

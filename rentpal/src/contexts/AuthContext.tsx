@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession()
         setSession(session)
         setUser(session?.user ?? null)
-      } catch (e) {
+      } catch {
         console.warn('[Auth] Supabase not configured or unavailable; continuing without auth')
       } finally {
         setLoading(false)
@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false)
       })
       subscription = res.data.subscription
-    } catch (e) {
+    } catch {
       // ignore when not configured
     }
 
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       })
       return { error }
-    } catch (e) {
+    } catch {
       return { error: { name: 'AuthError', message: 'Auth unavailable' } as unknown as AuthError }
     }
   }
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password
       })
       return { error }
-    } catch (e) {
+    } catch {
       return { error: { name: 'AuthError', message: 'Auth unavailable' } as unknown as AuthError }
     }
   }
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { error } = await supabase.auth.signOut()
       return { error }
-    } catch (e) {
+    } catch {
       return { error: { name: 'AuthError', message: 'Auth unavailable' } as unknown as AuthError }
     }
   }
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         redirectTo: `${window.location.origin}/auth/reset-password`
       })
       return { error }
-    } catch (e) {
+    } catch {
       return { error: { name: 'AuthError', message: 'Auth unavailable' } as unknown as AuthError }
     }
   }

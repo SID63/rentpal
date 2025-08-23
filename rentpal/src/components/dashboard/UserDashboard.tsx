@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBookings, useUserItems, useNotifications } from '@/hooks/useDatabase'
-import { BookingWithDetails, ItemWithDetails } from '@/types/database'
 import Link from 'next/link'
 
 interface DashboardStats {
@@ -41,9 +40,9 @@ export default function UserDashboard() {
     if (user) {
       calculateStats()
     }
-  }, [user, renterBookings, ownerBookings, items, notifications])
+  }, [user, calculateStats])
 
-  const calculateStats = () => {
+  const calculateStats = useCallback(() => {
     const activeBookings = [...renterBookings, ...ownerBookings].filter(
       booking => ['confirmed', 'active'].includes(booking.status)
     ).length
@@ -68,7 +67,7 @@ export default function UserDashboard() {
       pendingReviews,
       recentActivity
     })
-  }
+  }, [renterBookings, ownerBookings, items, unreadCount, generateRecentActivity])
 
   const generateRecentActivity = () => {
     const activities: DashboardStats['recentActivity'] = []
@@ -197,7 +196,7 @@ export default function UserDashboard() {
                 <h1 className="text-2xl font-bold text-gray-900">
                   Welcome back, {user.user_metadata?.full_name || user.email}!
                 </h1>
-                <p className="text-gray-600">Here's what's happening with your rentals</p>
+                <p className="text-gray-600">Here&apos;s what&apos;s happening with your rentals</p>
               </div>
               <div className="flex space-x-3">
                 <Link

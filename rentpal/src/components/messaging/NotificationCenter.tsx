@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Notification } from '@/types/database'
 import { useNotifications } from '@/hooks/useDatabase'
 

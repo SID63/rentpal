@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { ConversationWithDetails, MessageWithDetails } from '@/types/database'
 import { useMessages } from '@/hooks/useDatabase'
 import { useAuth } from '@/contexts/AuthContext'
-import { messageService } from '@/lib/database'
+import Image from 'next/image'
 
 interface MessageThreadProps {
   conversation: ConversationWithDetails
@@ -160,9 +160,11 @@ export default function MessageThread({
         <div className="flex items-center space-x-3">
           {/* Avatar */}
           {otherParticipant.avatar_url ? (
-            <img
+            <Image
               src={otherParticipant.avatar_url}
               alt={otherParticipant.full_name}
+              width={40}
+              height={40}
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (

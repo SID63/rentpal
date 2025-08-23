@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -75,11 +75,6 @@ export default function BookingForm({
 
   const watchedValues = watch()
 
-  // Calculate pricing when dates/times change
-  useEffect(() => {
-    calculatePricing()
-  }, [watchedValues.startDate, watchedValues.endDate, watchedValues.startTime, watchedValues.endTime, watchedValues.needsDelivery])
-
   const handleCalendarDateSelect = (startDate: string, endDate: string) => {
     if (startDate && endDate) {
       setValue('startDate', startDate)
@@ -88,7 +83,7 @@ export default function BookingForm({
     }
   }
 
-  const calculatePricing = () => {
+  const calculatePricing = useCallback(() => {
     if (!watchedValues.startDate || !watchedValues.endDate) {
       setPricing(prev => ({ ...prev, totalHours: 0, subtotal: 0, totalAmount: 0 }))
       return
@@ -144,7 +139,12 @@ export default function BookingForm({
       securityDeposit: item.security_deposit,
       totalAmount
     })
-  }
+  }, [watchedValues.startDate, watchedValues.endDate, watchedValues.startTime, watchedValues.endTime, watchedValues.needsDelivery, item.min_rental_duration, item.max_rental_duration, item.hourly_rate, item.daily_rate, item.delivery_fee, item.security_deposit])
+
+  // Calculate pricing when dates/times change
+  useEffect(() => {
+    calculatePricing()
+  }, [watchedValues.startDate, watchedValues.endDate, watchedValues.startTime, watchedValues.endTime, watchedValues.needsDelivery, calculatePricing])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {

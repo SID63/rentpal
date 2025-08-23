@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { reviewService } from '@/lib/database'
-import { Review, ReviewWithDetails, ReviewInsert } from '@/types/database'
+import { Review, ReviewInsert } from '@/types/database'
 
 export function useItemReviews(itemId: string) {
   const [reviews, setReviews] = useState<Review[]>([])
@@ -14,14 +14,7 @@ export function useItemReviews(itemId: string) {
     ratingBreakdown: {} as { [key: number]: number }
   })
 
-  useEffect(() => {
-    if (itemId) {
-      fetchReviews()
-      fetchStats()
-    }
-  }, [itemId])
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true)
       const data = await reviewService.getItemReviews(itemId)
@@ -31,21 +24,28 @@ export function useItemReviews(itemId: string) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [itemId])
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const data = await reviewService.getReviewStats(itemId)
       setStats(data)
     } catch {
       console.error('Failed to fetch review stats')
     }
-  }
+  }, [itemId])
+
+  useEffect(() => {
+    if (itemId) {
+      fetchReviews()
+      fetchStats()
+    }
+  }, [itemId, fetchReviews, fetchStats])
 
   const refresh = useCallback(() => {
     fetchReviews()
     fetchStats()
-  }, [itemId])
+  }, [fetchReviews, fetchStats])
 
   return { reviews, loading, error, stats, refresh }
 }
@@ -55,13 +55,7 @@ export function useUserReviews(userId: string, type: 'received' | 'given' = 'rec
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (userId) {
-      fetchReviews()
-    }
-  }, [userId, type])
-
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true)
       const data = type === 'received' 
@@ -73,11 +67,17 @@ export function useUserReviews(userId: string, type: 'received' | 'given' = 'rec
     } finally {
       setLoading(false)
     }
-  }
+  }, [userId, type])
+
+  useEffect(() => {
+    if (userId) {
+      fetchReviews()
+    }
+  }, [userId, fetchReviews])
 
   const refresh = useCallback(() => {
     fetchReviews()
-  }, [userId, type])
+  }, [fetchReviews])
 
   return { reviews, loading, error, refresh }
 }
@@ -90,13 +90,7 @@ export function useReviewForm(bookingId: string) {
   const [error, setError] = useState<string | null>(null)
   const { user } = useAuth()
 
-  useEffect(() => {
-    if (user && bookingId) {
-      checkReviewEligibility()
-    }
-  }, [user, bookingId])
-
-  const checkReviewEligibility = async () => {
+  const checkReviewEligibility = useCallback(async () => {
     if (!user) return
 
     try {
@@ -111,7 +105,13 @@ export function useReviewForm(bookingId: string) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, bookingId])
+
+  useEffect(() => {
+    if (user && bookingId) {
+      checkReviewEligibility()
+    }
+  }, [user, bookingId, checkReviewEligibility])
 
   const submitReview = async (reviewData: ReviewInsert): Promise<Review | null> => {
     if (!user) return null
@@ -156,13 +156,7 @@ export function useReviewStats(itemId?: string, userId?: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (itemId || userId) {
-      fetchStats()
-    }
-  }, [itemId, userId])
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setLoading(true)
       const data = await reviewService.getReviewStats(itemId, userId)
@@ -172,11 +166,17 @@ export function useReviewStats(itemId?: string, userId?: string) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [itemId, userId])
+
+  useEffect(() => {
+    if (itemId || userId) {
+      fetchStats()
+    }
+  }, [itemId, userId, fetchStats])
 
   const refresh = useCallback(() => {
     fetchStats()
-  }, [itemId, userId])
+  }, [fetchStats])
 
   return { stats, loading, error, refresh }
 }

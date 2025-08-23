@@ -3,11 +3,14 @@
 /**
  * Analytics and performance monitoring utilities
  */
+import type { 
+  WebVitalsMetric
+} from '../types/monitoring'
 
 declare global {
   interface Window {
-    gtag: (...args: any[]) => void
-    dataLayer: any[]
+    gtag: (...args: unknown[]) => void
+    dataLayer: unknown[]
   }
 }
 
@@ -28,7 +31,7 @@ export const event = (action: string, parameters: {
   event_category?: string
   event_label?: string
   value?: number
-  [key: string]: any
+  [key: string]: string | number | boolean | undefined
 }) => {
   if (typeof window !== 'undefined' && window.gtag) {
     window.gtag('event', action, parameters)
@@ -67,9 +70,7 @@ export const trackEvent = {
     event('search', {
       search_term: query,
       event_category: 'engagement',
-      custom_parameters: {
-        result_count: resultCount,
-      },
+      result_count: resultCount,
     })
   },
 
@@ -211,7 +212,7 @@ export const performanceMonitor = PerformanceMonitor.getInstance()
 /**
  * Web Vitals monitoring
  */
-export const reportWebVitals = (metric: any) => {
+export const reportWebVitals = (metric: WebVitalsMetric) => {
   // Report to Google Analytics
   event(metric.name, {
     event_category: 'Web Vitals',
@@ -386,10 +387,6 @@ export const usePageTracking = () => {
   const router = useRouter()
 
   useEffect(() => {
-    const handleRouteChange = (url: string) => {
-      pageview(url)
-    }
-
     // Track initial page load
     pageview(window.location.pathname)
 

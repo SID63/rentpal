@@ -42,7 +42,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   loading = 'lazy',
   onLoad,
   onError,
-  fallbackSrc = '/images/placeholder.jpg',
+  fallbackSrc = '/vercel.svg',
   showLoadingSpinner = true,
   ...props
 }) => {
@@ -50,6 +50,8 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const [hasError, setHasError] = useState(false)
   const [currentSrc, setCurrentSrc] = useState(src)
   const imgRef = useRef<HTMLImageElement>(null)
+  const isSvg = /\.svg(\?|$)/i.test(currentSrc || '')
+  const isSupabaseCdn = /\.supabase\.co\//i.test(currentSrc || '')
 
   // Generate blur placeholder for better UX
   const generateBlurDataURL = (w: number, h: number) => {
@@ -69,7 +71,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     onLoad?.()
   }
 
-  const handleError = (error: any) => {
+  const handleError = () => {
     setHasError(true)
     setIsLoading(false)
     
@@ -118,20 +120,33 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const [lowQualitySrc, setLowQualitySrc] = useState<string>()
   
   useEffect(() => {
-    if (src && !priority) {
-      // Create low quality version for progressive loading
+    // Reset loading state when src changes
+    setIsLoading(true)
+    setHasError(false)
+    setCurrentSrc(src)
+  }, [src])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!src || priority) return
+    if (isSvg) return // Skip LQIP for SVGs
+    try {
       const url = new URL(src, window.location.origin)
-      url.searchParams.set('q', '10') // Very low quality
-      url.searchParams.set('w', '50') // Small width
+      url.searchParams.set('q', '10')
+      url.searchParams.set('w', '50')
       setLowQualitySrc(url.toString())
+    } catch {
+      // If URL construction fails (e.g., data URLs), skip LQIP
     }
-  }, [src, priority])
+  }, [src, priority, isSvg])
 
   const imageProps = {
     src: currentSrc,
     alt,
     quality,
     priority,
+    // For Supabase CDN assets, avoid Next.js proxy/optimization to reduce mismatch issues
+    unoptimized: isSupabaseCdn,
     placeholder: blurDataURL ? 'blur' : placeholder,
     blurDataURL: blurDataURL || (width && height ? generateBlurDataURL(width, height) : undefined),
     sizes: sizes || (fill ? '100vw' : undefined),
@@ -145,7 +160,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     ...props,
   }
 
-  if (hasError && currentSrc === fallbackSrc) {
+  if (!isLoading && hasError && currentSrc === fallbackSrc) {
     // Both original and fallback failed, show placeholder
     return (
       <div
@@ -169,10 +184,13 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     )
   }
 
+  // Ensure non-zero height container when using fill to avoid Next/Image warnings
+  const wrapperClassName = `relative ${fill ? 'min-h-[150px]' : ''}`
+
   return (
-    <div className="relative">
+    <div className={wrapperClassName}>
       {/* Progressive loading: show low quality first */}
-      {lowQualitySrc && isLoading && !priority && (
+      {lowQualitySrc && isLoading && !priority && !isSvg && (
         <Image
           src={lowQualitySrc}
           alt={alt}
@@ -201,8 +219,8 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
       )}
       
       {/* Loading spinner */}
-      {isLoading && showLoadingSpinner && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+      {isLoading && showLoadingSpinner && !isSvg && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/60 pointer-events-none">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       )}

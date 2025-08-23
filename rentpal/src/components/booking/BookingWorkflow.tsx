@@ -78,10 +78,7 @@ export default function BookingWorkflow({
     }
   }
 
-  const handleBackToForm = () => {
-    setCurrentStep('form')
-    setCompletedBooking(null)
-  }
+
 
   return (
     <div className={className}>

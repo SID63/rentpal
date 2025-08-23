@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ItemAvailability, Booking } from '@/types/database'
 
@@ -53,11 +53,7 @@ export default function BookingCalendar({
   const firstDayOfWeek = firstDayOfMonth.getDay()
   const daysInMonth = lastDayOfMonth.getDate()
 
-  useEffect(() => {
-    fetchCalendarData()
-  }, [itemId, currentDate])
-
-  const fetchCalendarData = async () => {
+  const fetchCalendarData = useCallback(async () => {
     if (!itemId) return
 
     setLoading(true)
@@ -102,7 +98,11 @@ export default function BookingCalendar({
     } finally {
       setLoading(false)
     }
-  }
+  }, [itemId, currentMonth, currentYear])
+
+  useEffect(() => {
+    fetchCalendarData()
+  }, [itemId, currentDate, fetchCalendarData])
 
   const isDateBooked = (date: Date): boolean => {
     const dateString = date.toISOString().split('T')[0]

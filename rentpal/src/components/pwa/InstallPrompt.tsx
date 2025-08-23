@@ -1,15 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[]
-  readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed'
-    platform: string
-  }>
-  prompt(): Promise<void>
-}
+import type { BeforeInstallPromptEvent } from '../../types/events'
 
 interface InstallPromptProps {
   className?: string
@@ -26,7 +18,7 @@ export default function InstallPrompt({ className = "" }: InstallPromptProps) {
     // Check if app is already installed
     const checkInstallation = () => {
       const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches
-      const isIOSStandalone = (window.navigator as any).standalone === true
+      const isIOSStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true
       const isInstalled = isStandaloneMode || isIOSStandalone
       
       setIsStandalone(isStandaloneMode || isIOSStandalone)
@@ -132,8 +124,8 @@ export default function InstallPrompt({ className = "" }: InstallPromptProps) {
             </p>
             <div className="text-sm text-blue-800 space-y-1">
               <p>1. Tap the share button <span className="inline-block w-4 h-4 bg-blue-600 rounded text-white text-xs text-center">⬆</span></p>
-              <p>2. Select "Add to Home Screen"</p>
-              <p>3. Tap "Add" to install</p>
+              <p>2. Select &quot;Add to Home Screen&quot;</p>
+              <p>3. Tap &quot;Add&quot; to install</p>
             </div>
           </div>
           <button
@@ -202,7 +194,7 @@ export function usePWAInstall() {
   useEffect(() => {
     const checkInstallation = () => {
       const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches
-      const isIOSStandalone = (window.navigator as any).standalone === true
+      const isIOSStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true
       setIsInstalled(isStandaloneMode || isIOSStandalone)
     }
 

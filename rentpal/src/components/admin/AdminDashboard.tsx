@@ -98,7 +98,7 @@ export default function AdminDashboard({ currentAdmin, className = "" }: AdminDa
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
         <p className="text-gray-600 mt-2">
-          Welcome back, {currentAdmin.profile?.full_name}. Here's what's happening on RentPal.
+          Welcome back, {currentAdmin.profile?.full_name}. Here&apos;s what&apos;s happening on RentPal.
         </p>
       </div>
 

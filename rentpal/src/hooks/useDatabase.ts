@@ -178,7 +178,7 @@ export function useItem(itemId: string) {
         setLoading(true)
         const data = await itemService.getItemById(itemId, user?.id)
         setItem(data)
-      } catch (err) {
+      } catch {
         setError('Failed to fetch item')
       } finally {
         setLoading(false)
@@ -211,7 +211,7 @@ export function useUserItems(userId?: string) {
           console.error('getUserItems returned non-array:', data)
         }
         setItems(safe)
-      } catch (err) {
+      } catch {
         setError('Failed to fetch user items')
       } finally {
         setLoading(false)
@@ -258,7 +258,7 @@ export function useBookings(type: 'renter' | 'owner' = 'renter') {
           console.error('getUserBookings returned non-array:', data)
         }
         setBookings(safe)
-      } catch (err) {
+      } catch {
         setError('Failed to fetch bookings')
       } finally {
         setLoading(false)
@@ -299,7 +299,7 @@ export function useBooking(bookingId: string) {
         setLoading(true)
         const data = await bookingService.getBooking(bookingId)
         setBooking(data)
-      } catch (err) {
+      } catch {
         setError('Failed to fetch booking')
       } finally {
         setLoading(false)
@@ -333,7 +333,7 @@ export function useItemReviews(itemId: string) {
           console.error('getItemReviews returned non-array:', data)
         }
         setReviews(safe)
-      } catch (err) {
+      } catch {
         setError('Failed to fetch reviews')
       } finally {
         setLoading(false)
@@ -366,7 +366,7 @@ export function useUserReviews(userId: string) {
           console.error('getUserReviews returned non-array:', data)
         }
         setReviews(safe)
-      } catch (err) {
+      } catch {
         setError('Failed to fetch user reviews')
       } finally {
         setLoading(false)
@@ -401,7 +401,7 @@ export function useConversations() {
           console.error('getConversations returned non-array:', data)
         }
         setConversations(safe)
-      } catch (err) {
+      } catch {
         setError('Failed to fetch conversations')
       } finally {
         setLoading(false)
@@ -434,7 +434,7 @@ export function useMessages(conversationId: string) {
           console.error('getMessages returned non-array:', data)
         }
         setMessages(safe)
-      } catch (err) {
+      } catch {
         setError('Failed to fetch messages')
       } finally {
         setLoading(false)
@@ -460,7 +460,7 @@ export function useMessages(conversationId: string) {
       }
 
       return message
-    } catch (err) {
+    } catch {
       setError('Failed to send message')
       return null
     }
@@ -491,7 +491,7 @@ export function useFavorites() {
           console.error('getUserFavorites returned non-array:', data)
         }
         setFavorites(safe)
-      } catch (err) {
+      } catch {
         setError('Failed to fetch favorites')
       } finally {
         setLoading(false)
@@ -516,7 +516,7 @@ export function useFavorites() {
         setFavorites(safe)
       }
       return success
-    } catch (err) {
+    } catch {
       setError('Failed to add favorite')
       return false
     }
@@ -531,7 +531,7 @@ export function useFavorites() {
         setFavorites(prev => prev.filter(item => item.id !== itemId))
       }
       return success
-    } catch (err) {
+    } catch {
       setError('Failed to remove favorite')
       return false
     }
@@ -564,7 +564,7 @@ export function useNotifications() {
         }
         setNotifications(safe)
         setUnreadCount(safe.filter(n => !n.is_read).length)
-      } catch (err) {
+      } catch {
         setError('Failed to fetch notifications')
       } finally {
         setLoading(false)
@@ -584,7 +584,7 @@ export function useNotifications() {
         setUnreadCount(prev => Math.max(0, prev - 1))
       }
       return success
-    } catch (err) {
+    } catch {
       setError('Failed to mark notification as read')
       return false
     }
@@ -602,7 +602,7 @@ export function useNotifications() {
         setUnreadCount(0)
       }
       return success
-    } catch (err) {
+    } catch {
       setError('Failed to mark all notifications as read')
       return false
     }

@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
-import ImageUpload from './ImageUpload'
+import EnhancedProfileImageUpload from './EnhancedProfileImageUpload'
 
 const profileEditSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
@@ -127,7 +127,7 @@ export default function ProfileEdit() {
     }
   }
 
-  const handleAvatarUpload = (url: string) => {
+  const handleAvatarChange = (url: string) => {
     setAvatarUrl(url)
   }
 
@@ -169,14 +169,13 @@ export default function ProfileEdit() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Profile Image Upload */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Profile Picture
-          </label>
-          <ImageUpload
+          <EnhancedProfileImageUpload
             currentImageUrl={avatarUrl}
-            onImageUpload={handleAvatarUpload}
-            bucket="avatars"
-            folder={`${user?.id}/avatar`}
+            onImageChange={handleAvatarChange}
+            disabled={isLoading}
+            showLabel={true}
+            showDefaultFallback={true}
+            className="mb-6"
           />
         </div>
 

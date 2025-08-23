@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import Image from 'next/image'
 
 interface ImageUploadProps {
   images: string[]
@@ -66,7 +67,12 @@ export default function ImageUpload({
           })
 
         if (uploadError) {
-          setError(`Failed to upload ${file.name}: ${uploadError.message}`)
+          console.error('Upload error:', uploadError)
+          if (uploadError.message.includes('Bucket not found')) {
+            setError(`Storage bucket not found. Please set up storage buckets first. Go to /setup-storage`)
+          } else {
+            setError(`Failed to upload ${file.name}: ${uploadError.message}`)
+          }
           continue
         }
 
@@ -229,12 +235,12 @@ export default function ImageUpload({
                   }
                 }}
               >
-                {/* Use native img here to avoid Next.js loader requirements in upload preview */}
-                <img
+                <Image
                   src={imageUrl}
                   alt={`Upload ${index + 1}`}
-                  className="w-full h-full object-cover cursor-move"
-                  loading="lazy"
+                  fill
+                  className="object-cover cursor-move"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 />
 
                 {/* Main Photo Badge */}

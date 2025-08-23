@@ -6,10 +6,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuth } from '@/contexts/AuthContext'
 import { itemService } from '@/lib/database'
-import { Item, ItemInsert, ItemUpdate } from '@/types/database'
+import { Item, ItemInsert, ItemUpdate, Category } from '@/types/database'
 import CategorySelector from '@/components/categories/CategorySelector'
 import ImageUpload from '@/components/items/ImageUpload'
 import AvailabilityCalendar from '@/components/items/AvailabilityCalendar'
+import ProfileValidationAlert from '@/components/profile/ProfileValidationAlert'
+import { useProfileValidation } from '@/hooks/useProfileValidation'
 import { useRouter } from 'next/navigation'
 
 const itemFormSchema = z.object({
@@ -45,6 +47,7 @@ export default function ItemForm({ item, onSuccess, onCancel }: ItemFormProps) {
   const [images, setImages] = useState<string[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>(item?.category_id || '')
   const { user } = useAuth()
+  const { validation: profileValidation, isLoading: isLoadingProfile } = useProfileValidation()
   const router = useRouter()
 
   const {
@@ -52,8 +55,7 @@ export default function ItemForm({ item, onSuccess, onCancel }: ItemFormProps) {
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
-    reset
+    watch
   } = useForm<ItemFormData>({
     resolver: zodResolver(itemFormSchema),
     defaultValues: {
@@ -86,14 +88,28 @@ export default function ItemForm({ item, onSuccess, onCancel }: ItemFormProps) {
     }
   }, [item])
 
+
+
   const onSubmit = async (data: ItemFormData) => {
     if (!user) {
       setError('You must be logged in to create a listing')
       return
     }
 
-    if (images.length === 0) {
-      setError('Please upload at least one image')
+    // Validate profile before proceeding
+    if (!profileValidation.valid) {
+      setError(profileValidation.error || 'Please complete your profile before creating items.')
+      return
+    }
+
+    // Additional client-side validation
+    if (!data.categoryId) {
+      setError('Please select a category for your item.')
+      return
+    }
+
+    if (data.dailyRate <= 0) {
+      setError('Please enter a valid daily rate greater than $0.')
       return
     }
 
@@ -121,46 +137,124 @@ export default function ItemForm({ item, onSuccess, onCancel }: ItemFormProps) {
         status: 'active'
       }
 
-      let savedItem: Item | null = null
+      let result: any = null
 
       if (item) {
         // Update existing item
-        savedItem = await itemService.updateItem(item.id, itemData as ItemUpdate)
+        if (images.length > 0) {
+          // Use updateItemWithImages if there are images
+          const updateResult = await itemService.updateItemWithImages(item.id, itemData as ItemUpdate, images as any)
+          if (updateResult.success) {
+            result = updateResult.data
+            // Show warning if there was a partial success (item updated but images failed)
+            if (updateResult.error) {
+              setError(updateResult.error)
+            }
+          } else {
+            // Provide more specific error messages for updates
+            const errorMessage = updateResult.error || 'Failed to update item. Please try again.'
+            if (errorMessage.includes('image')) {
+              setError('There was an issue updating your images. The item details were saved, but please try uploading images again.')
+            } else {
+              setError(errorMessage)
+            }
+            return
+          }
+        } else {
+          // Use regular updateItem if no images
+          result = await itemService.updateItem(item.id, itemData as ItemUpdate)
+          if (!result) {
+            setError('Failed to update item. Please try again.')
+            return
+          }
+        }
       } else {
-        // Create new item
-        savedItem = await itemService.createItem({
-          ...itemData,
-          owner_id: user.id
-        } as ItemInsert)
+        // Create new item using enhanced itemService interface
+        const createResult = await itemService.createItem({
+          itemData: {
+            ...itemData,
+            owner_id: user.id
+          } as ItemInsert,
+          images: images.length > 0 ? images as any : undefined
+        })
+
+        if (createResult.success) {
+          result = createResult.data
+          // Show warning if there was a partial success (item created but images failed)
+          if (createResult.error) {
+            setError(createResult.error)
+            // Don't return here - we still want to redirect/callback since item was created
+          }
+        } else {
+          // Provide more specific error messages based on the error content
+          const errorMessage = createResult.error || 'Failed to create item. Please try again.'
+          if (errorMessage.includes('profile')) {
+            setError('Please complete your profile before creating a listing. You can do this in your account settings.')
+          } else if (errorMessage.includes('image')) {
+            setError('There was an issue uploading your images. Please try again or create the listing without images first.')
+          } else {
+            setError(errorMessage)
+          }
+          return
+        }
       }
 
-      if (!savedItem) {
+      if (!result) {
         setError('Failed to save item. Please try again.')
         return
       }
 
-      // TODO: Save images to item_images table
-      // This will be implemented in the ImageUpload component
-
+      // Success! Clear any previous errors and proceed
+      setError(null)
+      
       if (onSuccess) {
-        onSuccess(savedItem)
+        onSuccess(result)
       } else {
-        router.push(`/items/${savedItem.id}`)
+        router.push(`/items/${result.id}`)
       }
-    } catch {
-      setError('An unexpected error occurred. Please try again.')
+    } catch (error) {
+      console.error('Form submission error:', error)
+      // Provide user-friendly error message based on error type
+      if (error instanceof Error) {
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          setError('Network error. Please check your connection and try again.')
+        } else if (error.message.includes('unauthorized') || error.message.includes('auth')) {
+          setError('Authentication error. Please log in again and try again.')
+        } else {
+          setError(`Error: ${error.message}`)
+        }
+      } else {
+        setError('An unexpected error occurred. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleCategorySelect = (categoryId: string) => {
+  const handleCategorySelect = (categoryId: string, category: Category) => {
     setSelectedCategoryId(categoryId)
     setValue('categoryId', categoryId)
   }
 
   const handleImagesChange = (newImages: string[]) => {
     setImages(newImages)
+  }
+
+  // Show loading state while checking profile
+  if (isLoadingProfile) {
+    return (
+      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center space-x-3">
+            <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span className="text-gray-600">Loading profile information...</span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -174,8 +268,20 @@ export default function ItemForm({ item, onSuccess, onCancel }: ItemFormProps) {
         </p>
       </div>
 
+      {/* Profile validation alert */}
+      {!profileValidation.valid && (
+        <ProfileValidationAlert 
+          validation={profileValidation}
+          showDismiss={false}
+        />
+      )}
+
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+        <div className={`border px-4 py-3 rounded mb-6 ${
+          error.includes('successfully') || error.includes('saved') 
+            ? 'bg-yellow-50 border-yellow-200 text-yellow-700' 
+            : 'bg-red-50 border-red-200 text-red-700'
+        }`}>
           {error}
         </div>
       )}
@@ -506,10 +612,16 @@ export default function ItemForm({ item, onSuccess, onCancel }: ItemFormProps) {
           )}
           <button
             type="submit"
-            disabled={isLoading}
-            className="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading || !profileValidation.valid}
+            className="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
-            {isLoading ? (item ? 'Updating...' : 'Creating...') : (item ? 'Update Listing' : 'Create Listing')}
+            {isLoading && (
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            )}
+            {isLoading ? (item ? 'Updating Listing...' : 'Creating Listing...') : (item ? 'Update Listing' : 'Create Listing')}
           </button>
         </div>
       </form>

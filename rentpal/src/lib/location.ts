@@ -26,6 +26,22 @@ export interface LocationBounds {
   southwest: Coordinates
 }
 
+interface NominatimResult {
+  lat: string
+  lon: string
+  display_name: string
+  address?: {
+    house_number?: string
+    road?: string
+    city?: string
+    town?: string
+    village?: string
+    state?: string
+    postcode?: string
+    country?: string
+  }
+}
+
 export class LocationService {
   private static instance: LocationService
   private geocoder: google.maps.Geocoder | null = null
@@ -245,7 +261,7 @@ export class LocationService {
         throw new Error('Geocoding service unavailable')
       }
       
-      const data = await response.json()
+      const data = await response.json() as NominatimResult[]
       
       if (data.length === 0) {
         throw new Error('Address not found')
@@ -275,7 +291,7 @@ export class LocationService {
         throw new Error('Reverse geocoding service unavailable')
       }
       
-      const data = await response.json()
+      const data = await response.json() as NominatimResult
       
       return {
         address: this.parseFallbackAddress(data),
@@ -286,7 +302,7 @@ export class LocationService {
     }
   }
 
-  private parseFallbackAddress(result: any): Address {
+  private parseFallbackAddress(result: NominatimResult): Address {
     const addr = result.address || {}
     
     return {

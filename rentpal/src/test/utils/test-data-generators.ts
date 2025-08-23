@@ -2,6 +2,7 @@ import { faker } from '@faker-js/faker'
 
 // Type imports
 import type { UserProfile, ItemListing, Booking, Review, Message, Category } from '@/types'
+import type { SearchFilters } from '@/types/api'
 
 /**
  * Generate mock user profile data
@@ -383,7 +384,7 @@ export const createMockApiResponse = <T>(data: T, options: {
 /**
  * Generate realistic search results
  */
-export const generateSearchResults = (query: string, filters: any = {}) => {
+export const generateSearchResults = (query: string, filters: Partial<SearchFilters> = {}) => {
   const baseItems = Array.from({ length: 50 }, () => generateMockItem())
   
   // Filter by query

@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { reportService, moderationService, Report, AdminUser } from '@/lib/admin'
-import Link from 'next/link'
 
 interface ReportsManagementProps {
   currentAdmin: AdminUser
@@ -22,14 +21,10 @@ export default function ReportsManagement({ currentAdmin, className = "" }: Repo
   const [totalReports, setTotalReports] = useState(0)
   const itemsPerPage = 10
 
-  useEffect(() => {
-    fetchReports()
-  }, [filters, currentPage])
-
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       setLoading(true)
-      const filterParams: any = {
+      const filterParams: Record<string, unknown> = {
         limit: itemsPerPage,
         offset: (currentPage - 1) * itemsPerPage
       }
@@ -51,7 +46,11 @@ export default function ReportsManagement({ currentAdmin, className = "" }: Repo
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters.status, filters.type, currentPage])
+
+  useEffect(() => {
+    fetchReports()
+  }, [fetchReports])
 
   const handleAssignReport = async (reportId: string) => {
     try {
@@ -180,7 +179,7 @@ export default function ReportsManagement({ currentAdmin, className = "" }: Repo
             <select
               value={filters.status}
               onChange={(e) => {
-                setFilters(prev => ({ ...prev, status: e.target.value as any }))
+                setFilters(prev => ({ ...prev, status: e.target.value as Report['status'] | 'all' }))
                 setCurrentPage(1)
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -200,7 +199,7 @@ export default function ReportsManagement({ currentAdmin, className = "" }: Repo
             <select
               value={filters.type}
               onChange={(e) => {
-                setFilters(prev => ({ ...prev, type: e.target.value as any }))
+                setFilters(prev => ({ ...prev, type: e.target.value as Report['type'] | 'all' }))
                 setCurrentPage(1)
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

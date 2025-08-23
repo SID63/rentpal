@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { itemService } from '@/lib/database'
 import { Item } from '@/types/database'
@@ -18,13 +18,7 @@ export default function EditItemPage() {
 
   const itemId = params.id as string
 
-  useEffect(() => {
-    if (itemId && user) {
-      fetchItem()
-    }
-  }, [itemId, user])
-
-  const fetchItem = async () => {
+  const fetchItem = useCallback(async () => {
     try {
       setLoading(true)
       const itemData = await itemService.getItemById(itemId)
@@ -46,7 +40,13 @@ export default function EditItemPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [itemId, user])
+
+  useEffect(() => {
+    if (itemId && user) {
+      fetchItem()
+    }
+  }, [itemId, user, fetchItem])
 
   const handleSuccess = (updatedItem: Item) => {
     router.push(`/items/${updatedItem.id}`)
